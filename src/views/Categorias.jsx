@@ -4,6 +4,7 @@ import { Container, Row, Col, Button, Spinner } from "react-bootstrap";
  import {supabase} from "../database/supabaseconfig";
  import NotificacionOperacion from '../components/NotificacionOperacion';
  import ModalRegistroCategoria from '../components/categorias/ModalRegistroCategoria';
+ import TarjetaCategoria from "../components/categorias/TarjetaCategoria";
 
 const Categorias = () => {
   // Variables de estado [cite: 12]
@@ -172,7 +173,7 @@ const Categorias = () => {
     onCerrar={() => setToast({ ...toast, mostrar: false })}
 />
 
-{cargando && (|
+{cargando && (
         <Row className="text-center my-5">
           <Col>
             <Spinner animation="border" variant="success" size="lg" />
@@ -180,6 +181,15 @@ const Categorias = () => {
           </Col>
         </Row>
       )}
+
+         <Col xs={12} sm={12} md={12} className="d-lg-none">
+  <TarjetaCategoria
+    categorias={categorias}
+    abrirModalEdicion={abrirModalEdicion}
+    abrirModalEliminacion={abrirModalEliminacion}
+  />
+</Col>
+
 
       {/* Lista de categorías cargadas */}
       {!cargando && categorias.length > 0 && (
@@ -203,6 +213,7 @@ const Categorias = () => {
         </Row>
       )}
 
+   
       {/* Aquí continuarían tus componentes de Modal de Edición y Eliminación */}
     </Container>
   );
