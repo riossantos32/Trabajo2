@@ -193,7 +193,7 @@ const Categorias = () => {
 
       {/* Lista de categorías cargadas */}
       {!cargando && categorias.length > 0 && (
-        <Row>
+        <Row className="d-none d-lg-block">
           <Col>
             <TablaCategorias
               categorias={categorias}
