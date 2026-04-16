@@ -140,7 +140,7 @@ const Categorias = () => {
 <Row className="align-items-center mb-3">
     <Col xs={9} sm={7} md={7} lg={7} className="d-flex align-items-center">
         <h3 className="mb-0">
-            <i className="bi-bookmark-plus-fill me-2"></i> Categoríasss
+            <i className="bi-bookmark-plus-fill me-2"></i> Categorías
         </h3>
     </Col>
     <Col xs={3} sm={5} md={5} lg={5} className="text-end">

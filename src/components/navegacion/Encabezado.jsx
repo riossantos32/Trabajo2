@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Container, Nav, Navbar, Offcanvas } from "react-bootstrap";
-import logo from "../../assets/ave.jpeg";
+import logo from "../../assets/ranch.jpeg";
 import { supabase } from "../../database/supabaseconfig";
 
 const Encabezado = () => {
@@ -150,7 +150,7 @@ const Encabezado = () => {
             className="d-inline-block me-2"
           />
           <strong>
-            <h4 className="mb-0">Discosa</h4>
+            <h4 className="mb-0">TheRach</h4>
           </strong>
         </Navbar.Brand>
 
