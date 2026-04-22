@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Button, Spinner } from "react-bootstrap";
+import { Container, Row, Col, Button, Spinner, Alert } from "react-bootstrap";
 import TablaCategorias from "../components/categorias/TablaCategorias";
 import { supabase } from "../database/supabaseconfig";
 import NotificacionOperacion from '../components/NotificacionOperacion';
@@ -7,6 +7,8 @@ import ModalRegistroCategoria from '../components/categorias/ModalRegistroCatego
 import TarjetaCategoria from "../components/categorias/TarjetaCategoria";
 import ModalEdicionCategoria from "../components/categorias/ModalEdicionCategoria";
 import ModalEliminarCategoria from "../components/categorias/ModalEliminacionCategoria";
+import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
+import Paginacion from "../components/ordenamiento/Paginacion";
 
 const Categorias = () => {
     const [categorias, setCategorias] = useState([]);
@@ -16,6 +18,10 @@ const Categorias = () => {
     const [mostrarModalEliminacion, setMostrarModalEliminacion] = useState(false);
     const [categoriaAEliminar, setCategoriaAEliminar] = useState(null);
     const [toast, setToast] = useState({ mostrar: false, mensaje: '', tipo: '' });
+    const [textoBusqueda, setTextoBusqueda] = useState("");
+    const [categoriasFiltradas, setCategoriasFiltradas] = useState([]);
+    const [registrosPorPagina, establecerRegistrosPorPagina] = useState(5);
+const [paginaActual, establecerPaginaActual] = useState(1);
 
     const [categoriaEditar, setCategoriaEditar] = useState({
         id_categoria: "",
@@ -32,6 +38,10 @@ const Categorias = () => {
         const { name, value } = e.target;
         setNuevaCategoria(prev => ({ ...prev, [name]: value }));
     };
+
+    const manejarBusqueda = (e) => {
+  setTextoBusqueda(e.target.value);
+};
 
     const manejoCambioInputEdicion = (e) => {
         const { name, value } = e.target;
@@ -90,6 +100,11 @@ const Categorias = () => {
     console.error("Excepción al actualizar categoría:", err.message);
   }
 };
+
+const categoriasPaginadas = categoriasFiltradas.slice(
+  (paginaActual - 1) * registrosPorPagina,
+  paginaActual * registrosPorPagina
+);
 
 
 const eliminarCategoria = async () => {
@@ -167,8 +182,23 @@ const eliminarCategoria = async () => {
     };
 
     useEffect(() => {
-        cargarCategorias();
-    }, []);
+        
+  if (!textoBusqueda.trim()) {
+    setCategoriasFiltradas(categorias);
+  } else {
+    const textoLower = textoBusqueda.toLowerCase().trim();
+    const filtradas = categorias.filter(
+      (cat) =>
+        cat.nombre_categoria.toLowerCase().includes(textoLower) ||
+        (cat.descripcion_categoria && cat.descripcion_categoria.toLowerCase().includes(textoLower))
+    );
+    setCategoriasFiltradas(filtradas);
+  }
+}, [textoBusqueda, categorias]);
+
+    useEffect(() => {
+        establecerPaginaActual(1);
+    }, [textoBusqueda]);
 
     const abrirModalEdicion = (categoria) => {
         setCategoriaEditar(categoria);
@@ -194,6 +224,17 @@ const eliminarCategoria = async () => {
                 </Col>
             </Row>
             <hr />
+
+            <CuadroBusquedas
+                textoBusqueda={textoBusqueda}
+                manejarCambioBusqueda={manejarBusqueda}
+            />
+
+            {textoBusqueda.trim() !== '' && categoriasFiltradas.length === 0 && (
+                <Alert variant="warning" className="mt-3">
+                    No se encontraron categorías que coincidan con la búsqueda.
+                </Alert>
+            )}
 
             <ModalRegistroCategoria
                 mostrarModal={mostrarModal}
@@ -235,7 +276,7 @@ const eliminarCategoria = async () => {
                     {/* Vista Móvil */}
                     <div className="d-lg-none">
                         <TarjetaCategoria
-                            categorias={categorias}
+                            categorias={categoriasPaginadas}
                             abrirModalEdicion={abrirModalEdicion}
                             abrirModalEliminacion={abrirModalEliminacion}
                         />
@@ -244,7 +285,7 @@ const eliminarCategoria = async () => {
                     {/* Vista Escritorio */}
                     <div className="d-none d-lg-block">
                         <TablaCategorias
-                            categorias={categorias}
+                            categorias={categoriasPaginadas}
                             abrirModalEdicion={abrirModalEdicion}
                             abrirModalEliminacion={abrirModalEliminacion}
                         />
@@ -253,6 +294,14 @@ const eliminarCategoria = async () => {
                     {categorias.length === 0 && <p className="text-center">No hay datos.</p>}
                 </>
             )}
+
+            <Paginacion
+                registrosPorPagina={registrosPorPagina}
+                totalRegistros={categoriasFiltradas.length}
+                paginaActual={paginaActual}
+                establecerPaginaActual={establecerPaginaActual}
+                establecerRegistrosPorPagina={establecerRegistrosPorPagina}
+            />
         </Container>
     );
 };
