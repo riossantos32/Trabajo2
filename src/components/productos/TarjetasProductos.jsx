@@ -13,6 +13,9 @@ const TarjetasProductos = ({ productos, abrirModalEdicion, abrirModalEliminacion
     return categoria ? categoria.nombre_categoria : 'Sin categoría';
   };
 
+  const obtenerImagenProducto = (producto) =>
+    producto.imagen || producto.url_imagen || producto.imagen_producto || producto.foto || producto.foto_producto || '';
+
   if (cargando) {
     return <p className="text-center">Cargando productos...</p>;
   }
@@ -26,10 +29,10 @@ const TarjetasProductos = ({ productos, abrirModalEdicion, abrirModalEliminacion
       {productos.map((producto) => (
         <Col key={producto.id_producto}>
           <Card className="h-100 shadow-sm">
-            {producto.imagen ? (
+            {obtenerImagenProducto(producto) ? (
               <Card.Img
                 variant="top"
-                src={producto.imagen}
+                src={obtenerImagenProducto(producto)}
                 alt={producto.nombre_producto}
                 style={{ height: '200px', objectFit: 'cover' }}
               />
@@ -41,7 +44,7 @@ const TarjetasProductos = ({ productos, abrirModalEdicion, abrirModalEliminacion
             <Card.Body>
               <Card.Title>{producto.nombre_producto}</Card.Title>
               <Card.Subtitle className="mb-2 text-muted">
-                {obtenerNombreCategoria(producto.categoria_producto)}
+                {obtenerNombreCategoria(producto.id_categoria || producto.categoria_producto || producto.nombre_categoria)}
               </Card.Subtitle>
               <Card.Text>{producto.descripcion}</Card.Text>
               <Card.Text>

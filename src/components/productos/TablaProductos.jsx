@@ -7,6 +7,9 @@ const TablaProductos = ({ productos, abrirModalEdicion, abrirModalEliminacion, c
     return categoria ? categoria.nombre_categoria : 'Sin categoría';
   };
 
+  const obtenerImagenProducto = (producto) =>
+    producto.imagen || producto.url_imagen || producto.imagen_producto || producto.foto || producto.foto_producto || '';
+
   if (!productos || productos.length === 0) {
     return null;
   }
@@ -30,11 +33,13 @@ const TablaProductos = ({ productos, abrirModalEdicion, abrirModalEliminacion, c
             <td>{producto.id_producto}</td>
             <td>{producto.nombre_producto}</td>
             <td className="d-none d-md-table-cell">{producto.descripcion}</td>
-            <td className="d-none d-sm-table-cell">{obtenerNombreCategoria(producto.categoria_producto)}</td>
+            <td className="d-none d-sm-table-cell">
+              {obtenerNombreCategoria(producto.id_categoria || producto.categoria_producto || producto.nombre_categoria)}
+            </td>
             <td>${producto.precio?.toFixed ? producto.precio.toFixed(2) : producto.precio}</td>
             <td className="d-none d-sm-table-cell" style={{ width: '120px' }}>
-              {producto.imagen ? (
-                <Image src={producto.imagen} alt={producto.nombre_producto} thumbnail fluid />
+              {obtenerImagenProducto(producto) ? (
+                <Image src={obtenerImagenProducto(producto)} alt={producto.nombre_producto} thumbnail fluid />
               ) : (
                 <span className="text-muted">Sin imagen</span>
               )}
