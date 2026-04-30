@@ -1,55 +1,68 @@
 import React from 'react';
-import { Table, Button, Image } from 'react-bootstrap';
+import { Table, Button } from 'react-bootstrap';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 
-const TablaProductos = ({ productos, abrirModalEdicion, abrirModalEliminacion, categorias }) => {
-  const obtenerNombreCategoria = (idCategoria) => {
-    const categoria = categorias?.find((cat) => cat.id_categoria === idCategoria);
-    return categoria ? categoria.nombre_categoria : 'Sin categoría';
-  };
-
-  const obtenerImagenProducto = (producto) =>
-    producto.imagen || producto.url_imagen || producto.imagen_producto || producto.foto || producto.foto_producto || '';
-
-  if (!productos || productos.length === 0) {
-    return null;
-  }
-
+const TablaProductos = ({ productos = [], abrirModalEdicion, abrirModalEliminacion }) => {
   return (
-    <Table striped bordered hover responsive className="shadow-sm">
+    <Table striped bordered hover responsive size="sm">
       <thead>
         <tr>
           <th>ID</th>
           <th>Nombre</th>
           <th className="d-none d-md-table-cell">Descripción</th>
-          <th className="d-none d-sm-table-cell">Categoría</th>
           <th>Precio</th>
-          <th className="d-none d-sm-table-cell">Imagen</th>
-          <th>Acciones</th>
+          <th className="d-none d-md-table-cell">Imagen</th>
+          <th className="text-center">Acciones</th>
         </tr>
       </thead>
       <tbody>
         {productos.map((producto) => (
           <tr key={producto.id_producto}>
             <td>{producto.id_producto}</td>
-            <td>{producto.nombre_producto}</td>
-            <td className="d-none d-md-table-cell">{producto.descripcion}</td>
-            <td className="d-none d-sm-table-cell">
-              {obtenerNombreCategoria(producto.id_categoria || producto.categoria_producto || producto.nombre_categoria)}
+            
+            <td>{producto.nombre_producto || 'Sin nombre'}</td>
+            
+            <td className="d-none d-md-table-cell">
+              {producto.descripcion_producto || 'Sin descripción'}
             </td>
-            <td>${producto.precio?.toFixed ? producto.precio.toFixed(2) : producto.precio}</td>
-            <td className="d-none d-sm-table-cell" style={{ width: '120px' }}>
-              {obtenerImagenProducto(producto) ? (
-                <Image src={obtenerImagenProducto(producto)} alt={producto.nombre_producto} thumbnail fluid />
+            
+            <td>
+              ${parseFloat(producto.precio_venta || 0).toFixed(2)}
+            </td>
+            
+            <td className="d-none d-md-table-cell text-center">
+              {producto.url_imagen ? (
+                <img
+                  src={producto.url_imagen}
+                  alt={producto.nombre_producto}
+                  style={{ 
+                    height: '48px', 
+                    width: 'auto', 
+                    objectFit: 'cover',
+                    borderRadius: '4px'
+                  }}
+                />
               ) : (
                 <span className="text-muted">Sin imagen</span>
               )}
             </td>
-            <td className="text-nowrap">
-              <Button variant="outline-primary" size="sm" onClick={() => abrirModalEdicion(producto)}>
-                Editar
-              </Button>{' '}
-              <Button variant="outline-danger" size="sm" onClick={() => abrirModalEliminacion(producto)}>
-                Eliminar
+            
+            <td className="text-center">
+              <Button
+                variant="outline-warning"
+                size="sm"
+                className="m-1"
+                onClick={() => abrirModalEdicion(producto)}
+              >
+                <i className="bi bi-pencil"></i>
+              </Button>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                className="m-1"
+                onClick={() => abrirModalEliminacion(producto)}
+              >
+                <i className="bi bi-trash"></i>
               </Button>
             </td>
           </tr>
