@@ -20,10 +20,10 @@ const TablaProductos = ({ productos = [], abrirModalEdicion, abrirModalEliminaci
           <tr key={producto.id_producto}>
             <td>{producto.id_producto}</td>
             
-            <td>{producto.nombre_producto || 'Sin nombre'}</td>
+            <td>{producto.nombreProducto || 'Sin nombre'}</td>
             
             <td className="d-none d-md-table-cell">
-              {producto.descripcion_producto || 'Sin descripción'}
+              {producto.descripcion || 'Sin descripción'}
             </td>
             
             <td>

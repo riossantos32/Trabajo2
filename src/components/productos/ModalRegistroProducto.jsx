@@ -80,8 +80,8 @@ const ModalRegistroProducto = ({
               type="number"
               step="0.01"
               min="0"
-              name="precio"
-              value={nuevoProducto.precio}
+              name="precio_venta"
+              value={nuevoProducto.precio_venta}
               onChange={manejoCambioInput}
               placeholder="Ingresa el precio"
             />
@@ -96,26 +96,9 @@ const ModalRegistroProducto = ({
             />
           </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>O URL de imagen</Form.Label>
-            <Form.Control
-              type="text"
-              name="imagen"
-              value={nuevoProducto.imagen}
-              onChange={manejoCambioInput}
-              placeholder="O pega la URL de la imagen"
-            />
-          </Form.Group>
+        
 
-          {nuevoProducto.imagen && (
-            <div className="text-center mb-3">
-              <img
-                src={nuevoProducto.imagen}
-                alt="Vista previa"
-                style={{ maxWidth: "100%", maxHeight: "180px", objectFit: "cover" }}
-              />
-            </div>
-          )}
+          
         </Form>
       </Modal.Body>
       <Modal.Footer>
@@ -129,8 +112,8 @@ const ModalRegistroProducto = ({
             !nuevoProducto.nombreProducto?.trim() ||
             !nuevoProducto.descripcion?.trim() ||
             !nuevoProducto.categoria_producto?.toString().trim() ||
-            !nuevoProducto.precio?.toString().trim() ||
-            !nuevoProducto.imagen?.trim()
+            !nuevoProducto.precio_venta?.toString().trim() ||
+            !nuevoProducto.url_imagen?.trim()
           }
         >
           Guardar

@@ -60,7 +60,7 @@ const ModalEdicionProducto = ({
             <Form.Label>Categoría</Form.Label>
             <Form.Select
               name="categoria_producto"
-              value={productoEditar.categoria_producto}
+              value={productoEditar.categoriaProducto}
               onChange={manejarCambioInputEdicion}
             >
               <option value="">Seleccione una categoría</option>
@@ -78,7 +78,7 @@ const ModalEdicionProducto = ({
               step="0.01"
               min="0"
               name="precio"
-              value={productoEditar.precio}
+              value={productoEditar.precio_venta}
               onChange={manejarCambioInputEdicion}
               placeholder="Ingresa el precio"
             />
@@ -97,15 +97,15 @@ const ModalEdicionProducto = ({
             <Form.Control
               type="text"
               name="imagen"
-              value={productoEditar.imagen}
+              value={productoEditar.url_imagen}
               onChange={manejarCambioInputEdicion}
               placeholder="Ingresa URL o selecciona un archivo"
             />
           </Form.Group>
-          {productoEditar.imagen && (
+          {productoEditar.url_imagen && (
             <div className="text-center mb-3">
               <img
-                src={productoEditar.imagen}
+                src={productoEditar.url_imagen}
                 alt="Vista previa"
                 style={{ maxWidth: "100%", maxHeight: "180px", objectFit: "cover" }}
               />
@@ -125,8 +125,8 @@ const ModalEdicionProducto = ({
             !productoEditar.nombreProducto?.trim() ||
             !productoEditar.descripcion?.trim() ||
             !productoEditar.categoria_producto?.toString().trim() ||
-            !productoEditar.precio?.toString().trim() ||
-            !productoEditar.imagen?.trim()
+            !productoEditar.precio_venta?.toString().trim() ||
+            !productoEditar.url_imagen?.trim()
           }
         >
           {deshabilitado ? 'Guardando...' : 'Actualizar'}

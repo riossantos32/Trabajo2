@@ -24,8 +24,8 @@ const Productos = () => {
     nombreProducto: "",
     descripcion: "",
     categoria_producto: "",
-    precio: "",
-    imagen: "",
+    precio_venta: "",
+    url_imagen: "",
   });
 
   const [productoEditar, setProductoEditar] = useState({
@@ -33,8 +33,8 @@ const Productos = () => {
     nombreProducto: "",
     descripcion: "",
     categoria_producto: "",
-    precio: "",
-    imagen: "",
+    precio_venta: "",
+    url_imagen: "",
   });
 
   // Manejo de inputs (para nuevo y edición)
@@ -63,7 +63,7 @@ const Productos = () => {
 
     try {
       const base64 = await convertirArchivoABase64(archivo);
-      setNuevoProducto((prev) => ({ ...prev, imagen: base64 }));
+      setNuevoProducto((prev) => ({ ...prev, url_imagen: base64 }));
     } catch (error) {
       console.error("Error al leer la imagen:", error);
       setToast({ mostrar: true, mensaje: "No se pudo leer la imagen seleccionada.", tipo: "error" });
@@ -84,7 +84,7 @@ const Productos = () => {
 
     try {
       const base64 = await convertirArchivoABase64(archivo);
-      setProductoEditar((prev) => ({ ...prev, imagen: base64 }));
+      setProductoEditar((prev) => ({ ...prev, url_imagen: base64 }));
     } catch (error) {
       console.error("Error al leer la imagen:", error);
       setToast({ mostrar: true, mensaje: "No se pudo leer la imagen seleccionada.", tipo: "error" });
@@ -141,8 +141,8 @@ const Productos = () => {
         !nuevoProducto.nombreProducto.trim() ||
         !nuevoProducto.descripcion.trim() ||
         !nuevoProducto.categoria_producto.toString().trim() ||
-        !nuevoProducto.precio.toString().trim() ||
-        !nuevoProducto.imagen.trim()
+        !nuevoProducto.precio_venta.toString().trim() ||
+        !nuevoProducto.url_imagen.trim()
       ) {
         setToast({ mostrar: true, mensaje: "Debe llenar todos los campos.", tipo: "advertencia" });
         return;
@@ -150,18 +150,18 @@ const Productos = () => {
 
       const { error } = await supabase.from("productos").insert([
         {
-          nombre_producto: nuevoProducto.nombreProducto,
+          nombreProducto: nuevoProducto.nombreProducto,
           descripcion: nuevoProducto.descripcion,
-          id_categoria: Number(nuevoProducto.categoria_producto),
-          precio_venta: parseFloat(nuevoProducto.precio),
-          url_imagen: nuevoProducto.imagen,
+          categoria_producto: Number(nuevoProducto.categoria_producto),
+          precio_venta: parseFloat(nuevoProducto.precio_venta),
+          url_imagen: nuevoProducto.url_imagen,
         },
       ]);
 
       if (error) throw error;
 
       setToast({ mostrar: true, mensaje: "Producto registrado exitosamente.", tipo: "exito" });
-      setNuevoProducto({ nombreProducto: "", descripcion: "", categoria_producto: "", precio: "", imagen: "" });
+      setNuevoProducto({ nombreProducto: "", descripcion: "", categoria_producto: "", precio_venta: "", url_imagen: "" });
       setMostrarModal(false);
       await cargarProductos();
     } catch (err) {
@@ -177,8 +177,8 @@ const Productos = () => {
         !productoEditar.nombreProducto.trim() ||
         !productoEditar.descripcion.trim() ||
         !productoEditar.categoria_producto.toString().trim() ||
-        !productoEditar.precio.toString().trim() ||
-        !productoEditar.imagen.trim()
+        !productoEditar.precio_venta.toString().trim() ||
+        !productoEditar.url_imagen.trim()
       ) {
         setToast({ mostrar: true, mensaje: "Debe llenar todos los campos.", tipo: "advertencia" });
         return;
@@ -190,8 +190,8 @@ const Productos = () => {
           nombre_producto: productoEditar.nombreProducto,
           descripcion: productoEditar.descripcion,
           id_categoria: Number(productoEditar.categoria_producto),
-          precio_venta: parseFloat(productoEditar.precio),
-          url_imagen: productoEditar.imagen,
+          precio_venta: parseFloat(productoEditar.precio_venta),
+          url_imagen: productoEditar.url_imagen,
         })
         .eq("id_producto", productoEditar.id_producto);
 
@@ -226,7 +226,7 @@ const Productos = () => {
       await cargarProductos();
       setToast({
         mostrar: true,
-        mensaje: `Producto ${productoAEliminar.nombreProducto || productoAEliminar.nombre_producto} eliminado.`,
+        mensaje: `Producto ${productoAEliminar.nombreProducto || productoAEliminar.nombreProducto} eliminado.`,
         tipo: "exito",
       });
     } catch (err) {
@@ -247,7 +247,7 @@ const Productos = () => {
       descripcion: producto.descripcion,
       categoria_producto: producto.id_categoria || producto.categoria_producto || "",
       precio: producto.precio_venta ?? producto.precio ?? "",
-      imagen: producto.url_imagen || producto.imagen || "",
+      url_imagen: producto.url_imagen || producto.imagen || "",
     });
     setMostrarModalEdicion(true);
   };
