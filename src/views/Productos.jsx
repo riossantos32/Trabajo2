@@ -40,6 +40,75 @@ const Productos = () => {
     archivo: null,
   });
 
+  // --- Manejador de archivo para edición ---
+  const manejoCambioArchivoEdicion = (e) => {
+    const archivo = e.target.files[0];
+    if (archivo && archivo.type.startsWith("image/")) {
+      setProductoEditar((prev) => ({ ...prev, archivo }));
+    } else {
+      alert("Selecciona una imagen válida (JPG, PNG, etc.)");
+    }
+  };
+
+  // --- Actualizar producto e imagen ---
+  const actualizarProducto = async () => {
+    if (!productoEditar.nombre_producto || !productoEditar.categoria_producto || !productoEditar.precio_venta) {
+      setToast({ mostrar: true, mensaje: "Completa los campos obligatorios.", tipo: "advertencia" });
+      return;
+    }
+
+    let urlImagenFinal = productoEditar.url_imagen;
+    let nombreImagenAnterior = null;
+
+    // Si hay nueva imagen
+    if (productoEditar.archivo) {
+      const nombreArchivo = `${Date.now()}_${productoEditar.archivo.name}`;
+      // Subir nueva imagen
+      const { error: uploadError } = await supabase.storage
+        .from("imagenes_productos")
+        .upload(nombreArchivo, productoEditar.archivo);
+      if (uploadError) {
+        setToast({ mostrar: true, mensaje: "Error al subir la imagen.", tipo: "error" });
+        return;
+      }
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from("imagenes_productos")
+        .getPublicUrl(nombreArchivo);
+      urlImagenFinal = urlData.publicUrl;
+      // Eliminar imagen anterior si existe
+      if (productoEditar.url_imagen) {
+        const partes = productoEditar.url_imagen.split("/");
+        nombreImagenAnterior = partes[partes.length - 1];
+        if (nombreImagenAnterior) {
+          await supabase.storage.from("imagenes_productos").remove([nombreImagenAnterior]);
+        }
+      }
+    }
+
+    // Actualizar producto en la base de datos
+    const { error } = await supabase
+      .from("productos")
+      .update({
+        nombre_producto: productoEditar.nombre_producto,
+        descripcion_producto: productoEditar.descripcion_producto || null,
+        categoria_producto: productoEditar.categoria_producto,
+        precio_venta: parseFloat(productoEditar.precio_venta),
+        url_imagen: urlImagenFinal,
+      })
+      .eq("id_producto", productoEditar.id_producto);
+
+    if (error) {
+      setToast({ mostrar: true, mensaje: "Error al actualizar el producto.", tipo: "error" });
+      return;
+    }
+
+    setMostrarModalEdicion(false);
+    setToast({ mostrar: true, mensaje: "Producto actualizado correctamente.", tipo: "exito" });
+    setProductoEditar({ id_producto: "", nombre_producto: "", descripcion_producto: "", categoria_producto: "", precio_venta: "", url_imagen: "", archivo: null });
+    await cargarProductos();
+  };
+
   // --- Manejadores de Input ---
   const manejoCambioInput = (e) => {
     const { name, value } = e.target;
@@ -172,6 +241,7 @@ const Productos = () => {
       categoria_producto: producto.categoria_producto,
       precio_venta: producto.precio_venta,
       url_imagen: producto.url_imagen,
+      archivo: null,
     });
     setMostrarModalEdicion(true);
   };
@@ -225,6 +295,17 @@ const Productos = () => {
         manejoCambioInput={manejoCambioInput}
         manejoCambioArchivo={manejoCambioArchivo}
         agregarProducto={agregarProducto}
+      />
+
+
+      <ModalEdicionProducto
+        mostrarModalEdicion={mostrarModalEdicion}
+        setMostrarModalEdicion={setMostrarModalEdicion}
+        productoEditar={productoEditar}
+        categorias={categorias}
+        manejarCambioInputEdicion={manejoCambioInputEdicion}
+        manejoCambioArchivoEdicion={manejoCambioArchivoEdicion}
+        actualizarProducto={actualizarProducto}
       />
 
       <ModalEliminarProducto

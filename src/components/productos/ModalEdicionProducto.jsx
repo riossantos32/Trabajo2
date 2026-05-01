@@ -39,8 +39,8 @@ const ModalEdicionProducto = ({
             <Form.Label>Nombre</Form.Label>
             <Form.Control
               type="text"
-              name="nombreProducto"
-              value={productoEditar.nombreProducto}
+              name="nombre_producto"
+              value={productoEditar.nombre_producto}
               onChange={manejarCambioInputEdicion}
               placeholder="Ingresa el nombre del producto"
             />
@@ -50,8 +50,8 @@ const ModalEdicionProducto = ({
             <Form.Control
               as="textarea"
               rows={3}
-              name="descripcion"
-              value={productoEditar.descripcion}
+              name="descripcion_producto"
+              value={productoEditar.descripcion_producto}
               onChange={manejarCambioInputEdicion}
               placeholder="Ingresa la descripción"
             />
@@ -60,7 +60,7 @@ const ModalEdicionProducto = ({
             <Form.Label>Categoría</Form.Label>
             <Form.Select
               name="categoria_producto"
-              value={productoEditar.categoriaProducto}
+              value={productoEditar.categoria_producto}
               onChange={manejarCambioInputEdicion}
             >
               <option value="">Seleccione una categoría</option>
@@ -77,7 +77,7 @@ const ModalEdicionProducto = ({
               type="number"
               step="0.01"
               min="0"
-              name="precio"
+              name="precio_venta"
               value={productoEditar.precio_venta}
               onChange={manejarCambioInputEdicion}
               placeholder="Ingresa el precio"
@@ -87,7 +87,7 @@ const ModalEdicionProducto = ({
             <Form.Label>Seleccionar imagen</Form.Label>
             <Form.Control
               type="file"
-              name="imagen"
+              name="archivo"
               accept="image/*"
               onChange={manejoCambioArchivoEdicion}
             />
@@ -96,16 +96,17 @@ const ModalEdicionProducto = ({
             <Form.Label>O URL de imagen</Form.Label>
             <Form.Control
               type="text"
-              name="imagen"
+              name="url_imagen"
               value={productoEditar.url_imagen}
               onChange={manejarCambioInputEdicion}
               placeholder="Ingresa URL o selecciona un archivo"
             />
           </Form.Group>
-          {productoEditar.url_imagen && (
+          {/* Vista previa de imagen seleccionada */}
+          {(productoEditar.archivo || productoEditar.url_imagen) && (
             <div className="text-center mb-3">
               <img
-                src={productoEditar.url_imagen}
+                src={productoEditar.archivo ? URL.createObjectURL(productoEditar.archivo) : productoEditar.url_imagen}
                 alt="Vista previa"
                 style={{ maxWidth: "100%", maxHeight: "180px", objectFit: "cover" }}
               />
@@ -122,11 +123,10 @@ const ModalEdicionProducto = ({
           onClick={handleActualizar}
           disabled={
             deshabilitado ||
-            !productoEditar.nombreProducto?.trim() ||
-            !productoEditar.descripcion?.trim() ||
+            !productoEditar.nombre_producto?.trim() ||
             !productoEditar.categoria_producto?.toString().trim() ||
             !productoEditar.precio_venta?.toString().trim() ||
-            !productoEditar.url_imagen?.trim()
+            (!productoEditar.url_imagen?.trim() && !productoEditar.archivo)
           }
         >
           {deshabilitado ? 'Guardando...' : 'Actualizar'}
