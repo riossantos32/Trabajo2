@@ -10,7 +10,9 @@ import TablaProductos from "../components/productos/TablaProductos";
 import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
 
 const Productos = () => {
+
   const [productos, setProductos] = useState([]);
+  const [productosFiltrados, setProductosFiltrados] = useState([]); // Requerido por la guía
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -21,23 +23,24 @@ const Productos = () => {
   const [textoBusqueda, setTextoBusqueda] = useState("");
 
   const [nuevoProducto, setNuevoProducto] = useState({
-    nombreProducto: "",
-    descripcion: "",
+    nombre_producto: "",
+    descripcion_producto: "",
     categoria_producto: "",
     precio_venta: "",
-    url_imagen: "",
+    archivo: null, 
   });
 
   const [productoEditar, setProductoEditar] = useState({
     id_producto: "",
-    nombreProducto: "",
-    descripcion: "",
+    nombre_producto: "",
+    descripcion_producto: "",
     categoria_producto: "",
     precio_venta: "",
     url_imagen: "",
+    archivo: null,
   });
 
-  // Manejo de inputs (para nuevo y edición)
+  // --- Manejadores de Input ---
   const manejoCambioInput = (e) => {
     const { name, value } = e.target;
     setNuevoProducto((prev) => ({ ...prev, [name]: value }));
@@ -48,53 +51,20 @@ const Productos = () => {
     setProductoEditar((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Convertir archivo a Base64
-  const manejoCambioArchivo = async (e) => {
-    const archivo = e.target.files?.[0];
-    if (!archivo) return;
-
-    const convertirArchivoABase64 = (archivoLocal) =>
-      new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(archivoLocal);
-      });
-
-    try {
-      const base64 = await convertirArchivoABase64(archivo);
-      setNuevoProducto((prev) => ({ ...prev, url_imagen: base64 }));
-    } catch (error) {
-      console.error("Error al leer la imagen:", error);
-      setToast({ mostrar: true, mensaje: "No se pudo leer la imagen seleccionada.", tipo: "error" });
+  const manejoCambioArchivo = (e) => {
+    const archivo = e.target.files[0];
+    if (archivo && archivo.type.startsWith("image/")) {
+      setNuevoProducto((prev) => ({ ...prev, archivo }));
+    } else {
+      alert("Selecciona una imagen válida (JPG, PNG, etc.)");
     }
   };
 
-  const manejoCambioArchivoEdicion = async (e) => {
-    const archivo = e.target.files?.[0];
-    if (!archivo) return;
-
-    const convertirArchivoABase64 = (archivoLocal) =>
-      new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(archivoLocal);
-      });
-
-    try {
-      const base64 = await convertirArchivoABase64(archivo);
-      setProductoEditar((prev) => ({ ...prev, url_imagen: base64 }));
-    } catch (error) {
-      console.error("Error al leer la imagen:", error);
-      setToast({ mostrar: true, mensaje: "No se pudo leer la imagen seleccionada.", tipo: "error" });
-    }
-  };
-
-  const manejarCambioBusqueda = (e) => {
+  const manejarBusqueda = (e) => {
     setTextoBusqueda(e.target.value);
   };
 
+  // --- Carga de Datos ---
   const cargarProductos = async () => {
     try {
       setCargando(true);
@@ -104,15 +74,9 @@ const Productos = () => {
         .order("id_producto", { ascending: true });
 
       if (error) throw error;
-      const productosNormalizados = (data || []).map((producto) => ({
-        ...producto,
-        nombreProducto: producto.nombreProducto || producto.nombre_producto || "",
-        precio: producto.precio ?? producto.precio_venta ?? "",
-        imagen: producto.imagen || producto.url_imagen || "",
-      }));
-      setProductos(productosNormalizados);
+      setProductos(data || []);
+      setProductosFiltrados(data || []);
     } catch (err) {
-      console.error("Error cargando productos:", err.message);
       setToast({ mostrar: true, mensaje: "Error al cargar productos.", tipo: "error" });
     } finally {
       setCargando(false);
@@ -123,131 +87,91 @@ const Productos = () => {
     try {
       const { data, error } = await supabase
         .from("categorias")
-        .select("id_categoria, nombre_categoria")
-        .order("nombre_categoria", { ascending: true });
-
+        .select("*")
+        .order("id_categoria", { ascending: true });
       if (error) throw error;
       setCategorias(data || []);
     } catch (err) {
-      console.error("Error cargando categorías:", err.message);
-      setToast({ mostrar: true, mensaje: "Error al cargar categorías.", tipo: "error" });
+      console.error("Error categorías:", err.message);
     }
   };
 
-  // ====================== AGREGAR PRODUCTO ======================
-  const agregarProducto = async () => {
-    try {
-      if (
-        !nuevoProducto.nombreProducto.trim() ||
-        !nuevoProducto.descripcion.trim() ||
-        !nuevoProducto.categoria_producto.toString().trim() ||
-        !nuevoProducto.precio_venta.toString().trim() ||
-        !nuevoProducto.url_imagen.trim()
-      ) {
-        setToast({ mostrar: true, mensaje: "Debe llenar todos los campos.", tipo: "advertencia" });
-        return;
-      }
-
-      const { error } = await supabase.from("productos").insert([
-        {
-          nombreProducto: nuevoProducto.nombreProducto,
-          descripcion: nuevoProducto.descripcion,
-          categoria_producto: Number(nuevoProducto.categoria_producto),
-          precio_venta: parseFloat(nuevoProducto.precio_venta),
-          url_imagen: nuevoProducto.url_imagen,
-        },
-      ]);
-
-      if (error) throw error;
-
-      setToast({ mostrar: true, mensaje: "Producto registrado exitosamente.", tipo: "exito" });
-      setNuevoProducto({ nombreProducto: "", descripcion: "", categoria_producto: "", precio_venta: "", url_imagen: "" });
-      setMostrarModal(false);
-      await cargarProductos();
-    } catch (err) {
-      console.error("Error registrando producto:", err.message);
-      setToast({ mostrar: true, mensaje: "Error al registrar el producto.", tipo: "error" });
-    }
-  };
-
-  // ====================== ACTUALIZAR PRODUCTO ======================
-  const actualizarProducto = async () => {
-    try {
-      if (
-        !productoEditar.nombreProducto.trim() ||
-        !productoEditar.descripcion.trim() ||
-        !productoEditar.categoria_producto.toString().trim() ||
-        !productoEditar.precio_venta.toString().trim() ||
-        !productoEditar.url_imagen.trim()
-      ) {
-        setToast({ mostrar: true, mensaje: "Debe llenar todos los campos.", tipo: "advertencia" });
-        return;
-      }
-
-      const { error } = await supabase
-        .from("productos")
-        .update({
-          nombre_producto: productoEditar.nombreProducto,
-          descripcion: productoEditar.descripcion,
-          id_categoria: Number(productoEditar.categoria_producto),
-          precio_venta: parseFloat(productoEditar.precio_venta),
-          url_imagen: productoEditar.url_imagen,
-        })
-        .eq("id_producto", productoEditar.id_producto);
-
-      if (error) {
-        console.error("Error al actualizar producto:", error.message);
-        setToast({ mostrar: true, mensaje: "Error al actualizar el producto.", tipo: "error" });
-        return;
-      }
-
-      setMostrarModalEdicion(false);
-      await cargarProductos();
-      setToast({ mostrar: true, mensaje: `Producto ${productoEditar.nombreProducto} actualizado.`, tipo: "exito" });
-    } catch (err) {
-      console.error("Excepción al actualizar producto:", err.message);
-      setToast({ mostrar: true, mensaje: "Error inesperado al actualizar producto.", tipo: "error" });
-    }
-  };
-
-  // ====================== ELIMINAR PRODUCTO ======================
-  const eliminarProducto = async () => {
-    if (!productoAEliminar) return;
-
-    try {
-      setMostrarModalEliminacion(false);
-      const { error } = await supabase
-        .from("productos")
-        .delete()
-        .eq("id_producto", productoAEliminar.id_producto);
-
-      if (error) throw error;
-
-      await cargarProductos();
-      setToast({
-        mostrar: true,
-        mensaje: `Producto ${productoAEliminar.nombreProducto || productoAEliminar.nombreProducto} eliminado.`,
-        tipo: "exito",
+  // --- Lógica de Búsqueda (useEffect) ---
+  useEffect(() => {
+    if (!textoBusqueda.trim()) {
+      setProductosFiltrados(productos);
+    } else {
+      const textoLower = textoBusqueda.toLowerCase().trim();
+      const filtrados = productos.filter((prod) => {
+        const nombre = prod.nombre_producto?.toLowerCase() || "";
+        const desc = prod.descripcion_producto?.toLowerCase() || "";
+        const precio = prod.precio_venta?.toString() || "";
+        return nombre.includes(textoLower) || desc.includes(textoLower) || precio.includes(textoLower);
       });
-    } catch (err) {
-      console.error("Error eliminando producto:", err.message);
-      setToast({ mostrar: true, mensaje: "Error al eliminar el producto.", tipo: "error" });
+      setProductosFiltrados(filtrados);
     }
-  };
+  }, [textoBusqueda, productos]);
 
   useEffect(() => {
     cargarProductos();
     cargarCategorias();
   }, []);
 
+  
+  const agregarProducto = async () => {
+    try {
+      if (!nuevoProducto.nombre_producto || !nuevoProducto.categoria_producto || !nuevoProducto.precio_venta || !nuevoProducto.archivo) {
+        setToast({ mostrar: true, mensaje: "Completa los campos obligatorios.", tipo: "advertencia" });
+        return;
+      }
+
+      setMostrarModal(false);
+      
+      // 1. Subir Imagen a Storage
+      const nombreArchivo = `${Date.now()}_${nuevoProducto.archivo.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("imagenes_productos")
+        .upload(nombreArchivo, nuevoProducto.archivo);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Obtener URL Pública
+      const { data: urlData } = supabase.storage
+        .from("imagenes_productos")
+        .getPublicUrl(nombreArchivo);
+      
+      const urlPublica = urlData.publicUrl;
+
+      // 3. Insertar en Base de Datos
+      const { error } = await supabase.from("productos").insert([
+        {
+          nombre_producto: nuevoProducto.nombre_producto,
+          descripcion_producto: nuevoProducto.descripcion_producto || null,
+          categoria_producto: nuevoProducto.categoria_producto,
+          precio_venta: parseFloat(nuevoProducto.precio_venta),
+          url_imagen: urlPublica,
+        },
+      ]);
+
+      if (error) throw error;
+
+      setToast({ mostrar: true, mensaje: "Producto registrado correctamente.", tipo: "exito" });
+      setNuevoProducto({ nombre_producto: "", descripcion_producto: "", categoria_producto: "", precio_venta: "", archivo: null });
+      await cargarProductos();
+    } catch (err) {
+      setToast({ mostrar: true, mensaje: "Error al registrar el producto.", tipo: "error" });
+    }
+  };
+
+  // --- Resto de funciones (Edición y Eliminación) ---
   const abrirModalEdicion = (producto) => {
     setProductoEditar({
       id_producto: producto.id_producto,
-      nombreProducto: producto.nombreProducto || producto.nombre_producto || "",
-      descripcion: producto.descripcion,
-      categoria_producto: producto.id_categoria || producto.categoria_producto || "",
-      precio: producto.precio_venta ?? producto.precio ?? "",
-      url_imagen: producto.url_imagen || producto.imagen || "",
+      nombre_producto: producto.nombre_producto,
+      descripcion_producto: producto.descripcion_producto,
+      categoria_producto: producto.categoria_producto,
+      precio_venta: producto.precio_venta,
+      url_imagen: producto.url_imagen,
     });
     setMostrarModalEdicion(true);
   };
@@ -257,38 +181,39 @@ const Productos = () => {
     setMostrarModalEliminacion(true);
   };
 
-  const productosFiltrados = productos.filter((producto) => {
-    const busqueda = textoBusqueda.toLowerCase();
-    const nombreProducto = (producto.nombreProducto || producto.nombre_producto || "").toLowerCase();
-    const descripcion = (producto.descripcion || "").toLowerCase();
-    const precio = (producto.precio_venta ?? producto.precio ?? "").toString().toLowerCase();
-    return (
-      nombreProducto.includes(busqueda) ||
-      descripcion.includes(busqueda) ||
-      precio.includes(busqueda)
-    );
-  });
+  const eliminarProducto = async () => {
+    try {
+      const { error } = await supabase.from("productos").delete().eq("id_producto", productoAEliminar.id_producto);
+      if (error) throw error;
+      setMostrarModalEliminacion(false);
+      setToast({ mostrar: true, mensaje: "Producto eliminado.", tipo: "exito" });
+      await cargarProductos();
+    } catch (err) {
+      setToast({ mostrar: true, mensaje: "Error al eliminar.", tipo: "error" });
+    }
+  };
 
   return (
-    <Container>
-      <br />
+    <Container className="mt-3">
       <Row className="align-items-center mb-3">
-        <Col xs={9}>
-          <h3>
-            <i className="bi-bag-fill me-2"></i> Productos
-          </h3>
+        <Col className="d-flex align-items-center">
+          <h3 className="mb-0"><i className="bi-bag-heart-fill me-2"></i> Productos</h3>
         </Col>
         <Col xs={3} className="text-end">
           <Button onClick={() => setMostrarModal(true)}>
-            <i className="bi-plus-lg"></i> <span className="d-none d-sm-inline">Nuevo</span>
+            <i className="bi-plus-lg"></i> <span className="d-none d-sm-inline ms-2">Nuevo Producto</span>
           </Button>
         </Col>
       </Row>
       <hr />
 
-      <Row className="mb-3">
-        <Col>
-          <CuadroBusquedas textoBusqueda={textoBusqueda} manejarCambioBusqueda={manejarCambioBusqueda} />
+      <Row className="mb-4">
+        <Col md={6} lg={5}>
+          <CuadroBusquedas 
+            textoBusqueda={textoBusqueda} 
+            manejarCambioBusqueda={manejarBusqueda} 
+            placeholder="Buscar por nombre, descripción o precio..." 
+          />
         </Col>
       </Row>
 
@@ -300,16 +225,6 @@ const Productos = () => {
         manejoCambioInput={manejoCambioInput}
         manejoCambioArchivo={manejoCambioArchivo}
         agregarProducto={agregarProducto}
-      />
-
-      <ModalEdicionProducto
-        mostrarModalEdicion={mostrarModalEdicion}
-        setMostrarModalEdicion={setMostrarModalEdicion}
-        productoEditar={productoEditar}
-        categorias={categorias}
-        manejarCambioInputEdicion={manejoCambioInputEdicion}
-        manejoCambioArchivoEdicion={manejoCambioArchivoEdicion}
-        actualizarProducto={actualizarProducto}
       />
 
       <ModalEliminarProducto
@@ -327,36 +242,15 @@ const Productos = () => {
       />
 
       {cargando ? (
-        <div className="text-center my-5">
-          <Spinner animation="border" variant="success" />
-        </div>
+        <div className="text-center my-5"><Spinner animation="border" variant="primary" /></div>
       ) : (
         <>
           <div className="d-lg-none">
-            <TarjetasProductos
-              productos={productosFiltrados}
-              abrirModalEdicion={abrirModalEdicion}
-              abrirModalEliminacion={abrirModalEliminacion}
-              categorias={categorias}
-            />
+            <TarjetasProductos productos={productosFiltrados} abrirModalEdicion={abrirModalEdicion} abrirModalEliminacion={abrirModalEliminacion} />
           </div>
-
           <div className="d-none d-lg-block">
-            <TablaProductos
-              productos={productosFiltrados}
-              abrirModalEdicion={abrirModalEdicion}
-              abrirModalEliminacion={abrirModalEliminacion}
-              categorias={categorias}
-            />
+            <TablaProductos productos={productosFiltrados} abrirModalEdicion={abrirModalEdicion} abrirModalEliminacion={abrirModalEliminacion} />
           </div>
-
-          {productosFiltrados.length === 0 && !cargando && (
-            <p className="text-center">
-              {textoBusqueda
-                ? "No se encontraron productos que coincidan con la búsqueda."
-                : "No hay datos."}
-            </p>
-          )}
         </>
       )}
     </Container>
