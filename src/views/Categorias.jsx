@@ -227,7 +227,8 @@ const eliminarCategoria = async () => {
 
             <CuadroBusquedas
                 textoBusqueda={textoBusqueda}
-                manejarCambioBusqueda={manejarBusqueda}
+                manejarCambioBusqueda={(e) => setTextoBusqueda(e.target.value)}
+                placeholder="Buscar por nombre o descripción..."
             />
 
             {textoBusqueda.trim() !== '' && categoriasFiltradas.length === 0 && (
