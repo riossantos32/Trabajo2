@@ -9,7 +9,10 @@ import TablaClientes from '../components/clientes/TablaClientes';
 import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
 import Paginacion from "../components/ordenamiento/Paginacion";
 
+import { useAuth } from "../context/AuthContext";
+
 const Clientes = () => {
+    const { tienePermiso } = useAuth();
     // --- ESTADOS DE DATOS ---
     const [clientes, setClientes] = useState([]);
     const [cargando, setCargando] = useState(true);
@@ -167,9 +170,11 @@ const Clientes = () => {
                     <h2 className="text-primary"><i className="bi bi-person-badge-fill me-2"></i>Gestión de Clientes</h2>
                 </Col>
                 <Col className="text-end">
-                    <Button variant="primary" onClick={() => setMostrarModalRegistro(true)}>
-                        <i className="bi bi-plus-lg me-2"></i>Nuevo Cliente
-                    </Button>
+                    {tienePermiso('crear_clientes') && (
+                        <Button variant="primary" onClick={() => setMostrarModalRegistro(true)}>
+                            <i className="bi bi-plus-lg me-2"></i>Nuevo Cliente
+                        </Button>
+                    )}
                 </Col>
             </Row>
 

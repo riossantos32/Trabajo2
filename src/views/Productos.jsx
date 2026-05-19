@@ -11,7 +11,10 @@ import TablaProductos from '../components/productos/TablaProductos';
 import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
 import Paginacion from "../components/ordenamiento/Paginacion";
 
+import { useAuth } from "../context/AuthContext";
+
 const Productos = () => {
+    const { tienePermiso } = useAuth();
     // --- ESTADOS DE DATOS ---
     const [productos, setProductos] = useState([]);
     const [categorias, setCategorias] = useState([]);
@@ -28,13 +31,11 @@ const Productos = () => {
     const [productoEditar, setProductoEditar] = useState({
         id_producto: "",
         nombre_producto: "",
-        descripcion: "",
-        categoria_id: "",
+        descripcion_producto: "",
+        categoria_producto: "",
         precio_venta: "",
-        precio_compra: "",
-        url_imagenes: "",
-        archivo: null,
-        id_estado: "2"
+        url_imagen: "",
+        archivo: null
     });
     const [toast, setToast] = useState({ mostrar: false, mensaje: '', tipo: '' });
     
@@ -45,12 +46,10 @@ const Productos = () => {
 
     const [nuevoProducto, setNuevoProducto] = useState({
         nombre_producto: '',
-        descripcion: '',
+        descripcion_producto: '',
         precio_venta: '',
-        precio_compra: '',
-        categoria_id: '',
+        categoria_producto: '',
         archivo: null, 
-
     });
 
     // ================== CARGAR DATOS ==================
@@ -124,7 +123,7 @@ const Productos = () => {
 
     const agregarProducto = async () => {
         try {
-            if (!nuevoProducto.nombre_producto || !nuevoProducto.categoria_id || !nuevoProducto.precio_venta || !nuevoProducto.archivo) {
+            if (!nuevoProducto.nombre_producto || !nuevoProducto.categoria_producto || !nuevoProducto.precio_venta || !nuevoProducto.archivo) {
                 setToast({ mostrar: true, mensaje: "Completa los campos obligatorios e incluye una imagen.", tipo: "advertencia" });
                 return;
             }
@@ -134,48 +133,46 @@ const Productos = () => {
             const { error } = await supabase.from("productos").insert([
                 {
                     nombre_producto: nuevoProducto.nombre_producto.trim(),
-                    descripcion: nuevoProducto.descripcion || null,
-                    categoria_id: parseInt(nuevoProducto.categoria_id),
+                    descripcion_producto: nuevoProducto.descripcion_producto || null,
+                    categoria_producto: parseInt(nuevoProducto.categoria_producto),
                     precio_venta: parseFloat(nuevoProducto.precio_venta),
-                    precio_compra: parseFloat(nuevoProducto.precio_compra),
-                    url_imagenes: [urlPublica],
+                    url_imagen: urlPublica,
                 },
             ]);
 
             if (error) throw error;
 
             setToast({ mostrar: true, mensaje: "Producto registrado correctamente.", tipo: "exito" });
-            setNuevoProducto({ nombre_producto: "", descripcion: "", categoria_id: "", precio_venta: "", precio_compra: "", archivo: null, id_estado: "2" });
+            setNuevoProducto({ nombre_producto: "", descripcion_producto: "", categoria_producto: "", precio_venta: "", archivo: null });
             setMostrarModalRegistro(false);
             await cargarProductos();
         } catch (err) {
+            console.error("Error al registrar:", err);
             setToast({ mostrar: true, mensaje: "Error al registrar el producto.", tipo: "error" });
         }
     };
 
     const actualizarProducto = async () => {
         try {
-            if (!productoEditar.nombre_producto || !productoEditar.categoria_id || !productoEditar.precio_venta) {
+            if (!productoEditar.nombre_producto || !productoEditar.categoria_producto || !productoEditar.precio_venta) {
                 setToast({ mostrar: true, mensaje: "Campos obligatorios faltantes.", tipo: "advertencia" });
                 return;
             }
 
-            let urlImagenFinal = Array.isArray(productoEditar.url_imagenes) ? productoEditar.url_imagenes[0] : productoEditar.url_imagenes;
+            let urlImagenFinal = productoEditar.url_imagen;
 
             if (productoEditar.archivo) {
                 urlImagenFinal = await subirImagenStorage(productoEditar.archivo);
-                // Opcional: Aquí podrías añadir la lógica de la vista 1 para eliminar la imagen anterior del storage
             }
 
             const { error } = await supabase
                 .from("productos")
                 .update({
                     nombre_producto: productoEditar.nombre_producto,
-                    descripcion: productoEditar.descripcion,
-                    categoria_id: parseInt(productoEditar.categoria_id),
+                    descripcion_producto: productoEditar.descripcion_producto,
+                    categoria_producto: parseInt(productoEditar.categoria_producto),
                     precio_venta: parseFloat(productoEditar.precio_venta),
-                    precio_compra: parseFloat(productoEditar.precio_compra),
-                    url_imagenes: [urlImagenFinal],
+                    url_imagen: urlImagenFinal,
                 })
                 .eq("id_producto", productoEditar.id_producto);
 
@@ -185,6 +182,7 @@ const Productos = () => {
             setToast({ mostrar: true, mensaje: "Producto actualizado.", tipo: "exito" });
             await cargarProductos();
         } catch (err) {
+            console.error("Error al actualizar:", err);
             setToast({ mostrar: true, mensaje: "Error al actualizar.", tipo: "error" });
         }
     };
@@ -210,8 +208,8 @@ const Productos = () => {
     useEffect(() => {
         const busqueda = textoBusqueda.toLowerCase().trim();
         const filtrados = productos.filter((p) => (
-            p.nombre_producto?.toLowerCase().includes(busqueda) ||
-            p.categorias?.nombre_categoria?.toLowerCase().includes(busqueda)
+            (p.nombre_producto && p.nombre_producto.toLowerCase().includes(busqueda)) ||
+            (p.categorias && p.categorias.nombre_categoria && p.categorias.nombre_categoria.toLowerCase().includes(busqueda))
         ));
         setProductosFiltrados(filtrados);
         establecerPaginaActual(1);
@@ -226,8 +224,7 @@ const Productos = () => {
     const abrirModalEdicion = (producto) => {
         setProductoEditar({
             ...producto,
-            archivo: null,
-            id_estado: producto.id_estado?.toString() || '2'
+            archivo: null
         });
         setMostrarModalEdicion(true);
     };
@@ -239,9 +236,11 @@ const Productos = () => {
                     <h3><i className="bi bi-box-seam me-2"></i> Gestión de Productos</h3>
                 </Col>
                 <Col xs={3} className="text-end">
-                    <Button onClick={() => setMostrarModalRegistro(true)}>
-                        <i className="bi bi-plus-lg"></i> <span className="d-none d-sm-inline ms-2">Nuevo</span>
-                    </Button>
+                    {tienePermiso('crear_productos') && (
+                        <Button onClick={() => setMostrarModalRegistro(true)}>
+                            <i className="bi bi-plus-lg"></i> <span className="d-none d-sm-inline ms-2">Nuevo</span>
+                        </Button>
+                    )}
                 </Col>
             </Row>
             <hr />
@@ -272,10 +271,10 @@ const Productos = () => {
             />
 
             <ModalEliminacionProducto
-                mostrarModal={mostrarModalEliminacion}
-                setMostrarModal={setMostrarModalEliminacion}
-                productoAEliminar={productoAEliminar}
+                mostrarModalEliminacion={mostrarModalEliminacion}
+                setMostrarModalEliminacion={setMostrarModalEliminacion}
                 eliminarProducto={eliminarProducto}
+                producto={productoAEliminar}
             />
 
             
