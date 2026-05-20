@@ -22,7 +22,7 @@ const FormularioLogin = ({
             <Form.Label>Usuario (Email)</Form.Label>
             <Form.Control
               type="email"
-              placeholder="ejemplo@discosa.com"
+              placeholder="yosmar@gmail.com"
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               required
