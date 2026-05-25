@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+iimport React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Container, Nav, Navbar, Offcanvas } from "react-bootstrap";
 import logo from "../../assets/ranch.jpeg";
@@ -205,7 +205,7 @@ const Encabezado = () => {
           onHide={() => setMostrarMenu(false)}
         >
           <Offcanvas.Header closeButton>
-            <Offcanvas.Title>Menú Discosa</Offcanvas.Title>
+            <Offcanvas.Title>Menú Santos</Offcanvas.Title>
           </Offcanvas.Header>
 
           <Offcanvas.Body>{contenidoMenu}</Offcanvas.Body>
