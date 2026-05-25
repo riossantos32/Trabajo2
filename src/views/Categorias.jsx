@@ -10,6 +10,9 @@ import ModalEliminarCategoria from "../components/categorias/ModalEliminacionCat
 import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
 import Paginacion from "../components/ordenamiento/Paginacion";
 
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+
 import { useAuth } from "../context/AuthContext";
 
 const Categorias = () => {
@@ -167,6 +170,35 @@ const eliminarCategoria = async () => {
         }
     };
 
+    const generarPDFCategoria = (categoria) => {
+
+  const doc = new jsPDF();
+
+  // Título
+  doc.setFontSize(18);
+  doc.text("Reporte de Categoría", 14, 20);
+
+  // Línea decorativa
+  doc.line(14, 25, 195, 25);
+
+  // Información de la categoría
+  doc.setFontSize(12);
+
+  autoTable(doc, {
+    startY: 35,
+    head: [["Campo", "Valor"]],
+    body: [
+      ["ID", categoria.id_categoria],
+      ["Nombre", categoria.nombre_categoria],
+      ["Descripción", categoria.descripcion_categoria],
+    ],
+  });
+
+  // Descargar PDF
+  doc.save(`categoria_${categoria.id_categoria}.pdf`);
+};
+
+
     const cargarCategorias = async () => {
         try {
             setCargando(true);
@@ -291,12 +323,12 @@ const eliminarCategoria = async () => {
 
                     {/* Vista Escritorio */}
                     <div className="d-none d-lg-block">
-                        <TablaCategorias
-                            categorias={categoriasPaginadas}
-                            abrirModalEdicion={abrirModalEdicion}
-                            abrirModalEliminacion={abrirModalEliminacion}
-                            tienePermiso={tienePermiso}
-                        />
+                       <TablaCategorias
+  categorias={categoriasPaginadas}
+  abrirModalEdicion={abrirModalEdicion}
+  abrirModalEliminacion={abrirModalEliminacion}
+  generarPDFCategoria={generarPDFCategoria}
+/>
                     </div>
 
                     {categorias.length === 0 && <p className="text-center">No hay datos.</p>}

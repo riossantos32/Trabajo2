@@ -5,7 +5,8 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 const TablaCategorias = ({
   categorias,
   abrirModalEdicion,
-  abrirModalEliminacion
+  abrirModalEliminacion,
+  generarPDFCategoria
 }) => {
   const [loading, setLoading] = useState(true);
 
@@ -55,6 +56,14 @@ const TablaCategorias = ({
                     onClick={() => abrirModalEliminacion(categoria)}
                   >
                     <i className="bi bi-trash"></i>
+                  </Button>
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    className="m-1"
+                    onClick={() => generarPDFCategoria(categoria)}
+                  >
+                    <i className="bi bi-file-earmark-pdf"></i>
                   </Button>
                 </td>
               </tr>
