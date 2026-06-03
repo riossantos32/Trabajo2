@@ -1,15 +1,17 @@
-iimport React, { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Container, Nav, Navbar, Offcanvas } from "react-bootstrap";
 import logo from "../../assets/ranch.jpeg";
 import { supabase } from "../../database/supabaseconfig";
 import { useAuth } from "../../context/AuthContext";
 
+
 const Encabezado = () => {
   const [mostrarMenu, setMostrarMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation(); // Para detectar la ruta actual
   const { tienePermiso, logout, usuario } = useAuth();
+  const [mostrarChatIA, setMostrarChatIA] = useState(false);
 
   const manejarToggle = () => setMostrarMenu(!mostrarMenu);
 
@@ -188,7 +190,7 @@ const Encabezado = () => {
             className="d-inline-block me-2"
           />
           <strong>
-            <h4 className="mb-0">TheRach</h4>
+            <h4 className="mb-0">Laura</h4>
           </strong>
         </Navbar.Brand>
 
@@ -205,7 +207,7 @@ const Encabezado = () => {
           onHide={() => setMostrarMenu(false)}
         >
           <Offcanvas.Header closeButton>
-            <Offcanvas.Title>Menú Santos</Offcanvas.Title>
+            <Offcanvas.Title>Menú Discosa</Offcanvas.Title>
           </Offcanvas.Header>
 
           <Offcanvas.Body>{contenidoMenu}</Offcanvas.Body>
