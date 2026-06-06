@@ -4,7 +4,7 @@ import { Container, Nav, Navbar, Offcanvas } from "react-bootstrap";
 import logo from "../../assets/ranch.jpeg";
 import { supabase } from "../../database/supabaseconfig";
 import { useAuth } from "../../context/AuthContext";
-
+import ChatIA from "../ia/ChatIA";
 
 const Encabezado = () => {
   const [mostrarMenu, setMostrarMenu] = useState(false);
@@ -37,6 +37,7 @@ const Encabezado = () => {
 
   if (esLogin) {
     contenidoMenu = (
+
       <Nav className="ms-auto pe-2">
         <Nav.Link
           onClick={() => manejarNavegacion("/login")}
@@ -83,6 +84,11 @@ const Encabezado = () => {
             <strong>Categorías</strong>
           </Nav.Link>
 )}
+
+<Nav.Link onClick={() => setMostrarChatIA(true)} className="text-white">
+  <i className="bi bi-robot me-2"></i>
+</Nav.Link>
+
 
           
     {tienePermiso('ver_productos') && (
@@ -190,7 +196,7 @@ const Encabezado = () => {
             className="d-inline-block me-2"
           />
           <strong>
-            <h4 className="mb-0">Laura</h4>
+            <h4 className="mb-0">Santos</h4>
           </strong>
         </Navbar.Brand>
 
@@ -212,6 +218,7 @@ const Encabezado = () => {
 
           <Offcanvas.Body>{contenidoMenu}</Offcanvas.Body>
         </Navbar.Offcanvas>
+        <ChatIA mostrar={mostrarChatIA} onCerrar={() => setMostrarChatIA(false)} />
       </Container>
     </Navbar>
   );

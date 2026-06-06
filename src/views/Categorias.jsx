@@ -222,6 +222,10 @@ const eliminarCategoria = async () => {
     };
 
     useEffect(() => {
+      cargarCategorias();
+    }, []);
+
+    useEffect(() => {
      
   if (!textoBusqueda.trim()) {
     setCategoriasFiltradas(categorias);
