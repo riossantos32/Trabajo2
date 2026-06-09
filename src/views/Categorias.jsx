@@ -16,6 +16,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { useAuth } from "../context/AuthContext";
+import { Await } from "react-router-dom";
 
 const Categorias = () => {
     const { tienePermiso } = useAuth();
@@ -33,6 +34,8 @@ const [paginaActual, establecerPaginaActual] = useState(1);
 const [mostrarModalCorreo, setMostrarModalCorreo] = useState(false);
 const [emailDestino, setEmailDestino] = useState("");
 const [enviandoCorreo, setEnviandoCorreo] = useState(false);
+const [mostrarModalQR, setMostrarModalQR] = useState(false);
+const [categoriaQR, setCategoriaQR] = useState(null);
 
     const [categoriaEditar, setCategoriaEditar] = useState({
         id_categoria: "",
@@ -327,7 +330,43 @@ const enviarCorreoCategorias = () => {
   });
 };
 
-    return (
+const copiarCategoria = async (categoria) => {
+  if (!categoria) return;
+
+  const texto = `
+ID: ${categoria.id_categoria}
+Categoría: ${categoria.nombre_categoria}
+Descripción: ${categoria.descripcion_categoria || 'Sin descripción'}`;
+
+  try {
+    await navigator.clipboard.writeText(texto);
+
+    setToast({
+      mostrar: true,
+      mensaje: `Categoría "${categoria.nombre_categoria}" copiada al portapapeles`,
+      tipo: "exito",
+    });
+  } catch (err) {
+    console.error("Error al copiar:", err);
+    setToast({
+      mostrar: true,
+      mensaje: "No se pudo copiar al portapapeles",
+      tipo: "error",
+    });
+  }
+};
+
+const generarQRCategoria = (categoria) => {
+  setCategoriaQR(categoria);
+  setMostrarModalQR(true);
+};
+
+const cerrarModalQR = () => {
+  setCategoriaQR(null);
+  setMostrarModalQR(false);
+};
+
+return (
         <Container>
             <br />
             
@@ -422,6 +461,7 @@ const enviarCorreoCategorias = () => {
                             categorias={categoriasPaginadas}
                             abrirModalEdicion={abrirModalEdicion}
                             abrirModalEliminacion={abrirModalEliminacion}
+                            ccopiarCategoria={copiarCategoria}  
                             tienePermiso={tienePermiso}
                         />
                     </div>
@@ -432,7 +472,9 @@ const enviarCorreoCategorias = () => {
   categorias={categoriasPaginadas}
   abrirModalEdicion={abrirModalEdicion}
   abrirModalEliminacion={abrirModalEliminacion}
-  generarPDFCategoria={generarPDFCategoria}
+  generarPDFCategoria={generarPDFCategoria} 
+  copiarCategoria={copiarCategoria}
+  
 />
                     </div>
 

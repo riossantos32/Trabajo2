@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Button, Row, Col } from 'react-bootstrap';
 
-const TarjetasProductos = ({ productos, abrirModalEdicion, abrirModalEliminacion, categorias }) => {
+const TarjetasProductos = ({ productos, abrirModalEdicion, abrirModalEliminacion, categorias, generarQRImagen, copiarProducto }) => {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
@@ -51,9 +51,15 @@ const TarjetasProductos = ({ productos, abrirModalEdicion, abrirModalEliminacion
                 <strong>Precio:</strong> ${producto.precio?.toFixed ? producto.precio.toFixed(2) : producto.precio}
               </Card.Text>
             </Card.Body>
-            <Card.Footer className="d-flex justify-content-between gap-2">
+            <Card.Footer className="d-flex flex-wrap gap-2">
               <Button variant="outline-primary" size="sm" onClick={() => abrirModalEdicion(producto)}>
                 Editar
+              </Button>
+              <Button variant="outline-secondary" size="sm" onClick={() => copiarProducto(producto)}>
+                Copiar
+              </Button>
+              <Button variant="outline-info" size="sm" onClick={() => generarQRImagen(producto)}>
+                QR
               </Button>
               <Button variant="outline-danger" size="sm" onClick={() => abrirModalEliminacion(producto)}>
                 Eliminar

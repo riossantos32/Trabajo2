@@ -5,7 +5,8 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 const TarjetaCategoria = ({
   categorias,
   abrirModalEdicion,
-  abrirModalEliminacion
+  abrirModalEliminacion,
+  copiarCategoria
 }) => {
   // Estados para controlar la carga y la tarjeta seleccionada [cite: 8]
   const [cargando, setCargando] = useState(true);
@@ -108,6 +109,15 @@ const TarjetaCategoria = ({
                       >
                         <i className="bi bi-pencil"></i>
                       </Button>
+                     <Button
+  variant="outline-success"
+  size="sm"
+  className="m-1"
+  onClick={() => copiarCategoria(categoria)}
+  title="Copiar al portapapeles"
+>
+  <i className="bi bi-clipboard"></i>
+</Button>
                       <Button 
                         variant="outline-danger" 
                         size="sm" 

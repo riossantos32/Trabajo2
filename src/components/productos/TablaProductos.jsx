@@ -2,7 +2,7 @@ import React from 'react';
 import { Table, Button } from 'react-bootstrap';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
-const TablaProductos = ({ productos = [], abrirModalEdicion, abrirModalEliminacion }) => {
+const TablaProductos = ({ productos = [], abrirModalEdicion, abrirModalEliminacion, generarQRImagen, copiarProducto }) => {
   return (
     <Table striped bordered hover responsive size="sm">
       <thead>
@@ -48,6 +48,15 @@ const TablaProductos = ({ productos = [], abrirModalEdicion, abrirModalEliminaci
             </td>
             
             <td className="text-center">
+             
+              <Button
+                variant="outline-info"
+                size="sm"
+                className="m-1"
+                onClick={() => generarQRImagen(producto)}
+              >
+                <i className="bi bi-qr-code"></i>
+              </Button>
               <Button
                 variant="outline-warning"
                 size="sm"

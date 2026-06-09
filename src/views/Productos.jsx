@@ -5,6 +5,7 @@ import NotificacionOperacion from '../components/NotificacionOperacion';
 import ModalRegistroProducto from '../components/productos/ModalRegistroProducto';
 import ModalEdicionProducto from '../components/productos/ModalEdicionProducto';
 import ModalEliminacionProducto from '../components/productos/ModalEliminacionProducto';
+import ModalQRProducto from '../components/productos/ModalQRProducto';
 
 import TarjetasProductos from '../components/productos/TarjetasProductos';
 import TablaProductos from '../components/productos/TablaProductos';  
@@ -28,6 +29,8 @@ const Productos = () => {
     const [mostrarModalDescuento, setMostrarModalDescuento] = useState(false);
     const [productoAEliminar, setProductoAEliminar] = useState(null);
     const [productoSeleccionadoDescuento, setProductoSeleccionadoDescuento] = useState(null);
+    const [mostrarModalQR, setMostrarModalQR] = useState(false);
+    const [productoQR, setProductoQR] = useState(null);
     const [productoEditar, setProductoEditar] = useState({
         id_producto: "",
         nombre_producto: "",
@@ -199,6 +202,20 @@ const Productos = () => {
         }
     };
 
+    const generarQRImagen = (producto) => {
+  if (!producto?.url_imagen) {
+    setToast({
+      mostrar: true,
+      mensaje: "Este producto no tiene imagen asociada",
+      tipo: "advertencia"
+    });
+    return;
+  }
+
+  setProductoQR(producto);
+  setMostrarModalQR(true);
+};
+
     // ================== EFECTOS Y FILTROS ==================
     useEffect(() => {
         cargarProductos();
@@ -277,7 +294,11 @@ const Productos = () => {
                 producto={productoAEliminar}
             />
 
-            
+            <ModalQRProducto
+  mostrar={mostrarModalQR}
+  onHide={() => setMostrarModalQR(false)}
+  producto={productoQR}
+/>
 
             <NotificacionOperacion
                 mostrar={toast.mostrar}
@@ -293,9 +314,12 @@ const Productos = () => {
                     <div className="d-lg-none">
                         <TarjetasProductos 
                             productos={productosPaginados} 
+                            categorias={categorias}
                             abrirModalEdicion={abrirModalEdicion} 
                             abrirModalEliminacion={(p) => { setProductoAEliminar(p); setMostrarModalEliminacion(true); }}
                             abrirModalDescuento={(p) => { setProductoSeleccionadoDescuento(p); setMostrarModalDescuento(true); }}
+                            generarQRImagen={generarQRImagen}
+                            //copiarProducto={copiarProducto}
                         />
                     </div>
                     <div className="d-none d-lg-block">
@@ -304,6 +328,9 @@ const Productos = () => {
                             abrirModalEdicion={abrirModalEdicion} 
                             abrirModalEliminacion={(p) => { setProductoAEliminar(p); setMostrarModalEliminacion(true); }}
                             abrirModalDescuento={(p) => { setProductoSeleccionadoDescuento(p); setMostrarModalDescuento(true); }}
+                            generarQRImagen={generarQRImagen}
+                            //copiarProducto={copiarProducto}
+                            
                         />
                     </div>
                 </>
