@@ -15,6 +15,7 @@ const Inicio = () => {
   const [fechaDesde, setFechaDesde] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" }));
   const [fechaHasta, setFechaHasta] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" }));
 
+  // Referencias exclusivas para los contenedores visuales de los gráficos
   const graficoHoraRef = useRef(null);
   const graficoCategoriaRef = useRef(null);
 
@@ -131,14 +132,7 @@ const Inicio = () => {
 
       const { data: ventas, error: errorVentas } = await supabase
         .from("ventas")
-        .select(`
-          id_venta,
-          fecha_venta,
-          total,
-          metodo_pago,
-          id_empleado,
-          id_cliente
-        `)
+        .select(`id_venta, fecha_venta, total, metodo_pago, id_empleado, id_cliente`)
         .gte("fecha_venta", inicioRango)
         .lte("fecha_venta", finRango)
         .order("fecha_venta", { ascending: false });
@@ -151,18 +145,7 @@ const Inicio = () => {
       if (idsVentas.length > 0) {
         const { data: detalles, error: errorDetalles } = await supabase
           .from("detalles_ventas")
-          .select(`
-            id_detalle,
-            id_venta,
-            cantidad,
-            precio_unitario,
-            subtotal,
-            id_producto,
-            productos (
-              nombre_producto,
-              categorias (nombre_categoria)
-            )
-          `)
+          .select(`id_detalle, id_venta, cantidad, precio_unitario, subtotal, id_producto, productos (nombre_producto, categorias (nombre_categoria))`)
           .in("id_venta", idsVentas)
           .order("id_venta");
 
@@ -190,7 +173,7 @@ const Inicio = () => {
 
     } catch (err) {
       console.error("Error generando Excel:", err);
-      alert("Error al generar el Excel. Revisa la consola.");
+      alert("Error al generar el Excel.");
     } finally {
       setCargando(false);
     }
@@ -198,6 +181,8 @@ const Inicio = () => {
 
   const generarPdfVentasHora = async () => {
     try {
+      if (!graficoHoraRef.current) return;
+      const canvas = await html2canvas(graficoHoraRef.current, { scale: 2 });
       const pdf = new jsPDF("p", "mm", "a4");
 
       pdf.setFontSize(18);
@@ -210,11 +195,8 @@ const Inicio = () => {
       pdf.setFontSize(10);
       pdf.text(`Periodo: ${fechaDesde} - ${fechaHasta}`, 14, 22);
 
-      if (graficoHoraRef.current) {
-        const canvas = await html2canvas(graficoHoraRef.current);
-        const imagen = canvas.toDataURL("image/png");
-        pdf.addImage(imagen, "PNG", 10, 30, 190, 80);
-      }
+      const imagen = canvas.toDataURL("image/png");
+      pdf.addImage(imagen, "PNG", 10, 30, 190, 80);
 
       pdf.setFontSize(14);
       pdf.setTextColor("#330775");
@@ -241,7 +223,6 @@ const Inicio = () => {
 
       const fechaActual = new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" });
       pdf.save(`VentasHora_${fechaDesde}_${fechaHasta}_Generado_${fechaActual}.pdf`);
-
     } catch (error) {
       console.error(error);
       alert("Error generando PDF");
@@ -250,6 +231,8 @@ const Inicio = () => {
 
   const generarPdfVentasCategoria = async () => {
     try {
+      if (!graficoCategoriaRef.current) return;
+      const canvas = await html2canvas(graficoCategoriaRef.current, { scale: 2 });
       const pdf = new jsPDF("p", "mm", "a4");
 
       pdf.setFontSize(18);
@@ -262,11 +245,8 @@ const Inicio = () => {
       pdf.setFontSize(10);
       pdf.text(`Periodo: ${fechaDesde} - ${fechaHasta}`, 14, 22);
 
-      if (graficoCategoriaRef.current) {
-        const canvas = await html2canvas(graficoCategoriaRef.current);
-        const imagen = canvas.toDataURL("image/png");
-        pdf.addImage(imagen, "PNG", 10, 30, 190, 80);
-      }
+      const imagen = canvas.toDataURL("image/png");
+      pdf.addImage(imagen, "PNG", 10, 30, 190, 80);
 
       pdf.setFontSize(14);
       pdf.setTextColor("#330775");
@@ -296,7 +276,6 @@ const Inicio = () => {
 
       const fechaActual = new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" });
       pdf.save(`VentasPorCategoria_${fechaDesde}_${fechaHasta}_Generado_${fechaActual}.pdf`);
-
     } catch (error) {
       console.error(error);
       alert("Error generando PDF de Categorías");
@@ -329,18 +308,17 @@ const Inicio = () => {
       pdf.text(`Cantidad de Ventas: ${estadisticas.cantidadVentas}`, 20, 83);
 
       if (graficoHoraRef.current) {
-        const canvasHora = await html2canvas(graficoHoraRef.current);
+        const canvasHora = await html2canvas(graficoHoraRef.current, { scale: 1.5 });
         pdf.addImage(canvasHora.toDataURL("image/png"), "PNG", 10, 95, 190, 70);
       }
 
       if (graficoCategoriaRef.current) {
-        const canvasCat = await html2canvas(graficoCategoriaRef.current);
+        const canvasCat = await html2canvas(graficoCategoriaRef.current, { scale: 1.5 });
         pdf.addImage(canvasCat.toDataURL("image/png"), "PNG", 10, 175, 190, 70);
       }
 
       const fechaActual = new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" });
       pdf.save(`Reporte_General_${fechaDesde}_${fechaHasta}_${fechaActual}.pdf`);
-
     } catch (error) {
       console.error(error);
       alert("Error generando PDF General");
@@ -349,149 +327,144 @@ const Inicio = () => {
 
   const COLORES = ["#5e26b2", "#39ff95", "#ff6bc6", "#8b46ff", "#00d4ff", "#ffd93d"];
 
-  if (cargando) {
-    return (
-      <Container className="text-center mt-5">
-        <Spinner animation="border" variant="primary" size="lg" />
-        <p className="mt-3">Cargando estadísticas...</p>
-      </Container>
-    );
-  }
-
   return (
-    <div className="mt-2">
+    <Container fluid className="mt-4">
       <div className="mb-4">
         <h2>Dashboard</h2>
         <h6>Estadísticas del Negocio</h6>
       </div>
 
-      <Row className="mb-4">
+      {/* Seccion de Filtros y Botones Globales */}
+      <Row className="mb-4 align-items-end">
         <Col xs={6} md={3}>
           <Form.Group>
-            <Form.Label>Desde</Form.Label>
-            <Form.Control 
-              type="date" 
-              value={fechaDesde} 
-              onChange={(e) => setFechaDesde(e.target.value)} 
-            />
+            <Form.Label className="fw-bold">Desde</Form.Label>
+            <Form.Control type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
           </Form.Group>
         </Col>
         <Col xs={6} md={3}>
           <Form.Group>
-            <Form.Label>Hasta</Form.Label>
-            <Form.Control 
-              type="date" 
-              value={fechaHasta} 
-              onChange={(e) => setFechaHasta(e.target.value)} 
-            />
+            <Form.Label className="fw-bold">Hasta</Form.Label>
+            <Form.Control type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
           </Form.Group>
         </Col>
-        <Col md={6} className="d-flex align-items-end gap-2">
-          <Button variant="success" onClick={descargarExcel}>
-            <i className="bi bi-file-earmark-excel me-2"></i>
-            Descargar Excel
+        <Col xs={12} md={6} className="d-flex gap-2 mt-3 mt-md-0 justify-content-md-end">
+          <Button variant="success" onClick={descargarExcel} disabled={cargando}>
+            <i className="bi bi-file-earmark-excel me-2"></i>Descargar Excel
           </Button>
-          <Button variant="danger" onClick={generarPdfGeneral}>
-            <i className="bi bi-file-earmark-pdf me-2"></i>
-            PDF General
+          <Button variant="danger" onClick={generarPdfGeneral} disabled={cargando}>
+            <i className="bi bi-file-earmark-pdf me-2"></i>PDF General
           </Button>
         </Col>
       </Row>
 
-      {/* Tarjetas de resumen */}
-      <Row className="g-4 mb-5">
-        <Col md={6} lg={3}>
-          <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #28a745, #34ce57)" }}>
-            <Card.Body>
-              <h5>Ventas Totales</h5>
-              <h2>C$ {estadisticas.totalVentas.toFixed(2)}</h2>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6} lg={3}>
-          <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #0166d3, #3399ff)" }}>
-            <Card.Body>
-              <h5>Efectivo</h5>
-              <h2>C$ {estadisticas.ventasEfectivo.toFixed(2)}</h2>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6} lg={3}>
-          <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #5ea5f1, #94c0ec)" }}>
-            <Card.Body>
-              <h5>Tarjeta</h5>
-              <h2>C$ {estadisticas.ventasTarjeta.toFixed(2)}</h2>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={6} lg={3}>
-          <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #e27d01, #ffa500)" }}>
-            <Card.Body>
-              <h5>Productos Vendidos</h5>
-              <h2>{estadisticas.productosVendidos}</h2>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      {cargando ? (
+        <div className="text-center my-5 py-5">
+          <Spinner animation="border" variant="primary" size="lg" />
+          <p className="mt-3 text-muted">Cargando datos y procesando gráficos...</p>
+        </div>
+      ) : (
+        <>
+          {/* Tarjetas de KPI */}
+          <Row className="g-4 mb-5">
+            <Col md={6} lg={3}>
+              <Card className="h-100 text-white shadow border-0" style={{ background: "linear-gradient(135deg, #28a745, #34ce57)" }}>
+                <Card.Body>
+                  <h5>Ventas Totales</h5>
+                  <h2>C$ {estadisticas.totalVentas.toFixed(2)}</h2>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6} lg={3}>
+              <Card className="h-100 text-white shadow border-0" style={{ background: "linear-gradient(135deg, #0166d3, #3399ff)" }}>
+                <Card.Body>
+                  <h5>Efectivo</h5>
+                  <h2>C$ {estadisticas.ventasEfectivo.toFixed(2)}</h2>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6} lg={3}>
+              <Card className="h-100 text-white shadow border-0" style={{ background: "linear-gradient(135deg, #5ea5f1, #94c0ec)" }}>
+                <Card.Body>
+                  <h5>Tarjeta</h5>
+                  <h2>C$ {estadisticas.ventasTarjeta.toFixed(2)}</h2>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6} lg={3}>
+              <Card className="h-100 text-white shadow border-0" style={{ background: "linear-gradient(135deg, #e27d01, #ffa500)" }}>
+                <Card.Body>
+                  <h5>Productos Vendidos</h5>
+                  <h2>{estadisticas.productosVendidos}</h2>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
 
-      {/* Gráficos */}
-      <Row className="g-4">
-        <Col lg={8}>
-          <Card className="shadow border-0">
-            <Card.Body ref={graficoHoraRef}>
-              <h5 className="mb-3">Ventas por Hora</h5>
-              <ResponsiveContainer width="100%" height={360}>
-                <LineChart data={estadisticas.ventasPorHora}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="hora" />
-                  <YAxis tickFormatter={(v) => `C$${v}`} />
-                  <Tooltip formatter={(v) => [`C$ ${v}`, "Monto"]} />
-                  <Line type="monotone" dataKey="total" stroke="#5e26b2" strokeWidth={4} dot={{ r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </Card.Body>
-          </Card>
-        </Col>
+          {/* Sección de Gráficos */}
+          <Row className="g-4">
+            {/* Gráfico de Ventas por Hora */}
+            <Col lg={8}>
+              <Card className="shadow border-0 h-100">
+                <Card.Body>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="m-0">Ventas por Hora</h5>
+                    <Button variant="outline-danger" size="sm" onClick={generarPdfVentasHora}>
+                      <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                    </Button>
+                  </div>
+                  
+                  <div ref={graficoHoraRef} style={{ width: "100%", backgroundColor: "#ffffff" }}>
+                    <ResponsiveContainer width="100%" height={360}>
+                      <LineChart data={estadisticas.ventasPorHora}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="hora" />
+                        <YAxis tickFormatter={(v) => `C$${v}`} />
+                        <Tooltip formatter={(v) => [`C$ ${v}`, "Monto"]} />
+                        <Line type="monotone" dataKey="total" stroke="#5e26b2" strokeWidth={4} dot={{ r: 6 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
 
-        <Col lg={4}>
-          <Card className="shadow border-0">
-            <Card.Body ref={graficoCategoriaRef}>
-              <h5 className="mb-3">Ventas por Categoría</h5>
-              <ResponsiveContainer width="100%" height={360}>
-                <PieChart>
-                  <Pie
-                    data={estadisticas.ventasPorCategoria.length > 0 ? estadisticas.ventasPorCategoria : [{ name: "Sin datos", value: 1 }]}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={110}
-                  >
-                    {estadisticas.ventasPorCategoria.map((_, i) => (
-                      <Cell key={`cell-${i}`} fill={COLORES[i % COLORES.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => `C$ ${v}`} />
-                </PieChart>
-              </ResponsiveContainer>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+            {/* Gráfico de Ventas por Categoría */}
+            <Col lg={4}>
+              <Card className="shadow border-0 h-100">
+                <Card.Body>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="m-0">Ventas por Categoría</h5>
+                    <Button variant="outline-info" size="sm" onClick={generarPdfVentasCategoria}>
+                      <i className="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+                    </Button>
+                  </div>
 
-      {/* Botones PDF */}
-      <div className="p-3 text-center mt-4 d-flex justify-content-center gap-3 flex-wrap">
-        <Button variant="outline-primary" onClick={generarPdfVentasHora}>
-          <i className="bi bi-file-earmark-pdf me-2"></i>
-          PDF Ventas por Hora
-        </Button>
-        <Button variant="outline-info" onClick={generarPdfVentasCategoria}>
-          <i className="bi bi-file-earmark-pdf me-2"></i>
-          PDF Ventas por Categoría
-        </Button>
-      </div>
-    </div>
+                  <div ref={graficoCategoriaRef} style={{ width: "100%", backgroundColor: "#ffffff" }}>
+                    <ResponsiveContainer width="100%" height={360}>
+                      <PieChart>
+                        <Pie
+                          data={estadisticas.ventasPorCategoria.length > 0 ? estadisticas.ventasPorCategoria : [{ name: "Sin datos", value: 1 }]}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%" cy="50%"
+                          innerRadius={60} outerRadius={110}
+                        >
+                          {estadisticas.ventasPorCategoria.map((_, i) => (
+                            <Cell key={`cell-${i}`} fill={COLORES[i % COLORES.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(v) => `C$ ${v}`} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </>
+      )}
+    </Container>
   );
 };
 
