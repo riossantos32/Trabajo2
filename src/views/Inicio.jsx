@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Container, Row, Col, Card, Spinner, Form, Button } from "react-bootstrap";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  PieChart, Pie, Cell 
+} from "recharts";
 import { supabase } from "../database/supabaseconfig";
 import * as XLSX from 'xlsx';
 import jsPDF from "jspdf";
@@ -9,8 +12,11 @@ import html2canvas from "html2canvas";
 
 const Inicio = () => {
   const [cargando, setCargando] = useState(true);
-  const [fechaDesde, setFechaDesde] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" }));  
+  const [fechaDesde, setFechaDesde] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" }));
   const [fechaHasta, setFechaHasta] = useState(new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" }));
+
+  const graficoHoraRef = useRef(null);
+  const graficoCategoriaRef = useRef(null);
 
   const [estadisticas, setEstadisticas] = useState({
     totalVentas: 0,
@@ -23,75 +29,9 @@ const Inicio = () => {
     ventasPorCategoria: []
   });
 
-  const COLORES = ["#5e26b2", "#39ff95", "#ff6bc6", "#8b46ff", "#00d4ff", "#ffd93d"];
-  
-  // Referencia exclusiva asignada al contenedor del gráfico por hora
-  const graficoHoraRef = useRef(null);
-
-  // EFECTO: OBLIGATORIO colocarlo antes de cualquier return condicional
   useEffect(() => {
     cargarDatos(fechaDesde, fechaHasta);
   }, [fechaDesde, fechaHasta]);
-
-  const generarPdfVentasHora = async () => {
-    try {
-      if (!graficoHoraRef.current) return;
-
-      const pdf = new jsPDF("p", "mm", "a4");
-
-      // a) Título y Fecha
-      pdf.setFontSize(18);
-      pdf.setTextColor("#336775");
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Reporte de Ventas por Hora", 14, 15);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor("#008000");
-      pdf.setFontSize(10);
-      pdf.text(`Periodo: ${fechaDesde} - ${fechaHasta}`, 14, 22);
-
-      // b) Imagen del Gráfico (Captura únicamente el contenedor del LineChart
-      const canvas = await html2canvas(graficoHoraRef.current);
-      const imagen = canvas.toDataURL("image/png");
-      pdf.addImage(imagen, "PNG", 10, 30, 180, 80); // Ancho escalado a 180mm para formato A4
-
-      // c) Resumen General
-      pdf.setFontSize(14);
-      pdf.setTextColor("#336775");
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Resumen General", 14, 125);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor("#000000");
-      pdf.setFontSize(10);
-
-      pdf.text(`Total Ventas: C$ ${estadisticas.totalVentas.toFixed(2)}`, 14, 135);
-      pdf.text(`Ventas Efectivo: C$ ${estadisticas.ventasEfectivo.toFixed(2)}`, 14, 142);
-      pdf.text(`Ventas Tarjeta: C$ ${estadisticas.ventasTarjeta.toFixed(2)}`, 14, 149);
-      pdf.text(`Productos Vendidos: ${estadisticas.productosVendidos}`, 14, 156);
-      pdf.text(`Cantidad Ventas: ${estadisticas.cantidadVentas}`, 14, 163);
-
-      // d) Tabla de ventas por hora
-      const filas = estadisticas.ventasPorHora.map(item => [
-        item.hora,
-        `C$ ${item.total}`
-      ]);
-
-      autoTable(pdf, {
-        startY: 175,
-        head: [["Hora", "Monto Acumulado"]],
-        body: filas
-      });
-
-      // e) Descargar PDF
-      const fechaActual = new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" });
-      pdf.save(`VentasHora_${fechaDesde}_${fechaHasta}_Generado_${fechaActual}.pdf`);
-
-    } catch (error) {
-      console.error(error);
-      alert("Error generando PDF");
-    }
-  };
 
   const cargarDatos = async (desde, hasta) => {
     try {
@@ -153,7 +93,7 @@ const Inicio = () => {
       ventas?.forEach(venta => {
         if (!venta.fecha_venta) return;
         const hora = new Date(venta.fecha_venta).getHours();
-        if (hora >= 0 && hora < 24) horaMap[hora] += venta.total || 0;
+        horaMap[hora] += venta.total || 0;
       });
 
       const ventasPorHora = [];
@@ -256,7 +196,159 @@ const Inicio = () => {
     }
   };
 
-  // El return de carga condicional ahora se posiciona correctamente después de los Hooks
+  const generarPdfVentasHora = async () => {
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      pdf.setFontSize(18);
+      pdf.setTextColor("#330775");
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Reporte de Ventas por Hora", 14, 15);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor("#000000");
+      pdf.setFontSize(10);
+      pdf.text(`Periodo: ${fechaDesde} - ${fechaHasta}`, 14, 22);
+
+      if (graficoHoraRef.current) {
+        const canvas = await html2canvas(graficoHoraRef.current);
+        const imagen = canvas.toDataURL("image/png");
+        pdf.addImage(imagen, "PNG", 10, 30, 190, 80);
+      }
+
+      pdf.setFontSize(14);
+      pdf.setTextColor("#330775");
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Resumen General", 14, 115);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor("#000000");
+      pdf.setFontSize(10);
+
+      pdf.text(`Total Ventas: C$ ${estadisticas.totalVentas.toFixed(2)}`, 14, 125);
+      pdf.text(`Ventas Efectivo: C$ ${estadisticas.ventasEfectivo.toFixed(2)}`, 14, 132);
+      pdf.text(`Ventas Tarjeta: C$ ${estadisticas.ventasTarjeta.toFixed(2)}`, 14, 139);
+      pdf.text(`Productos Vendidos: ${estadisticas.productosVendidos}`, 14, 146);
+      pdf.text(`Cantidad Ventas: ${estadisticas.cantidadVentas}`, 14, 153);
+
+      const filas = estadisticas.ventasPorHora.map(item => [item.hora, `C$ ${item.total}`]);
+
+      autoTable(pdf, {
+        startY: 160,
+        head: [["Hora", "Monto Acumulado"]],
+        body: filas
+      });
+
+      const fechaActual = new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" });
+      pdf.save(`VentasHora_${fechaDesde}_${fechaHasta}_Generado_${fechaActual}.pdf`);
+
+    } catch (error) {
+      console.error(error);
+      alert("Error generando PDF");
+    }
+  };
+
+  const generarPdfVentasCategoria = async () => {
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      pdf.setFontSize(18);
+      pdf.setTextColor("#330775");
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Reporte de Ventas por Categoría", 14, 15);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor("#000000");
+      pdf.setFontSize(10);
+      pdf.text(`Periodo: ${fechaDesde} - ${fechaHasta}`, 14, 22);
+
+      if (graficoCategoriaRef.current) {
+        const canvas = await html2canvas(graficoCategoriaRef.current);
+        const imagen = canvas.toDataURL("image/png");
+        pdf.addImage(imagen, "PNG", 10, 30, 190, 80);
+      }
+
+      pdf.setFontSize(14);
+      pdf.setTextColor("#330775");
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Resumen General", 14, 120);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor("#000000");
+      pdf.setFontSize(10);
+
+      pdf.text(`Total Ventas: C$ ${estadisticas.totalVentas.toFixed(2)}`, 14, 130);
+      pdf.text(`Ventas Efectivo: C$ ${estadisticas.ventasEfectivo.toFixed(2)}`, 14, 137);
+      pdf.text(`Ventas Tarjeta: C$ ${estadisticas.ventasTarjeta.toFixed(2)}`, 14, 144);
+      pdf.text(`Productos Vendidos: ${estadisticas.productosVendidos}`, 14, 151);
+      pdf.text(`Cantidad Ventas: ${estadisticas.cantidadVentas}`, 14, 158);
+
+      const filasCategoria = estadisticas.ventasPorCategoria.map(item => [
+        item.name,
+        `C$ ${item.value.toFixed(2)}`
+      ]);
+
+      autoTable(pdf, {
+        startY: 170,
+        head: [["Categoría", "Monto Vendido"]],
+        body: filasCategoria
+      });
+
+      const fechaActual = new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" });
+      pdf.save(`VentasPorCategoria_${fechaDesde}_${fechaHasta}_Generado_${fechaActual}.pdf`);
+
+    } catch (error) {
+      console.error(error);
+      alert("Error generando PDF de Categorías");
+    }
+  };
+
+  const generarPdfGeneral = async () => {
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      pdf.setFontSize(20);
+      pdf.setTextColor("#330775");
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Reporte General de Ventas", 14, 20);
+
+      pdf.setFontSize(11);
+      pdf.setTextColor("#000000");
+      pdf.text(`Periodo: ${fechaDesde} - ${fechaHasta}`, 14, 30);
+
+      pdf.setFontSize(14);
+      pdf.setTextColor("#330775");
+      pdf.text("Resumen General", 14, 45);
+
+      pdf.setFontSize(11);
+      pdf.setTextColor("#000000");
+      pdf.text(`Total Ventas: C$ ${estadisticas.totalVentas.toFixed(2)}`, 20, 55);
+      pdf.text(`Ventas en Efectivo: C$ ${estadisticas.ventasEfectivo.toFixed(2)}`, 20, 62);
+      pdf.text(`Ventas con Tarjeta: C$ ${estadisticas.ventasTarjeta.toFixed(2)}`, 20, 69);
+      pdf.text(`Productos Vendidos: ${estadisticas.productosVendidos}`, 20, 76);
+      pdf.text(`Cantidad de Ventas: ${estadisticas.cantidadVentas}`, 20, 83);
+
+      if (graficoHoraRef.current) {
+        const canvasHora = await html2canvas(graficoHoraRef.current);
+        pdf.addImage(canvasHora.toDataURL("image/png"), "PNG", 10, 95, 190, 70);
+      }
+
+      if (graficoCategoriaRef.current) {
+        const canvasCat = await html2canvas(graficoCategoriaRef.current);
+        pdf.addImage(canvasCat.toDataURL("image/png"), "PNG", 10, 175, 190, 70);
+      }
+
+      const fechaActual = new Date().toLocaleDateString("en-CA", { timeZone: "America/Managua" });
+      pdf.save(`Reporte_General_${fechaDesde}_${fechaHasta}_${fechaActual}.pdf`);
+
+    } catch (error) {
+      console.error(error);
+      alert("Error generando PDF General");
+    }
+  };
+
+  const COLORES = ["#5e26b2", "#39ff95", "#ff6bc6", "#8b46ff", "#00d4ff", "#ffd93d"];
+
   if (cargando) {
     return (
       <Container className="text-center mt-5">
@@ -267,38 +359,49 @@ const Inicio = () => {
   }
 
   return (
-    <Container fluid className="mt-4">
+    <div className="mt-2">
       <div className="mb-4">
         <h2>Dashboard</h2>
         <h6>Estadísticas del Negocio</h6>
       </div>
 
-      {/* Rango de fechas y botones globales */}
       <Row className="mb-4">
         <Col xs={6} md={3}>
           <Form.Group>
             <Form.Label>Desde</Form.Label>
-            <Form.Control type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />
+            <Form.Control 
+              type="date" 
+              value={fechaDesde} 
+              onChange={(e) => setFechaDesde(e.target.value)} 
+            />
           </Form.Group>
         </Col>
         <Col xs={6} md={3}>
           <Form.Group>
             <Form.Label>Hasta</Form.Label>
-            <Form.Control type="date" value={fechaHasta} onChange={(e) => setFechaHasta(e.target.value)} />
+            <Form.Control 
+              type="date" 
+              value={fechaHasta} 
+              onChange={(e) => setFechaHasta(e.target.value)} 
+            />
           </Form.Group>
         </Col>
-        <Col md={6} className="d-flex align-items-end gap-2 mt-3 mt-md-0">
+        <Col md={6} className="d-flex align-items-end gap-2">
           <Button variant="success" onClick={descargarExcel}>
             <i className="bi bi-file-earmark-excel me-2"></i>
             Descargar Excel
           </Button>
+          <Button variant="danger" onClick={generarPdfGeneral}>
+            <i className="bi bi-file-earmark-pdf me-2"></i>
+            PDF General
+          </Button>
         </Col>
       </Row>
 
-      {/* Tarjetas informativas de KPI */}
+      {/* Tarjetas de resumen */}
       <Row className="g-4 mb-5">
         <Col md={6} lg={3}>
-          <Card className="h-100 text-white shadow border-0" style={{ background: "linear-gradient(135deg, #28a745, #34ce57)" }}>
+          <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #28a745, #34ce57)" }}>
             <Card.Body>
               <h5>Ventas Totales</h5>
               <h2>C$ {estadisticas.totalVentas.toFixed(2)}</h2>
@@ -306,7 +409,7 @@ const Inicio = () => {
           </Card>
         </Col>
         <Col md={6} lg={3}>
-          <Card className="h-100 text-white shadow border-0" style={{ background: "linear-gradient(135deg, #0166d3, #3399ff)" }}>
+          <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #0166d3, #3399ff)" }}>
             <Card.Body>
               <h5>Efectivo</h5>
               <h2>C$ {estadisticas.ventasEfectivo.toFixed(2)}</h2>
@@ -314,7 +417,7 @@ const Inicio = () => {
           </Card>
         </Col>
         <Col md={6} lg={3}>
-          <Card className="h-100 text-white shadow border-0" style={{ background: "linear-gradient(135deg, #5ea5f1, #94c0ec)" }}>
+          <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #5ea5f1, #94c0ec)" }}>
             <Card.Body>
               <h5>Tarjeta</h5>
               <h2>C$ {estadisticas.ventasTarjeta.toFixed(2)}</h2>
@@ -322,7 +425,7 @@ const Inicio = () => {
           </Card>
         </Col>
         <Col md={6} lg={3}>
-          <Card className="h-100 text-white shadow border-0" style={{ background: "linear-gradient(135deg, #e27d01, #ffa500)" }}>
+          <Card className="h-100 text-white shadow" style={{ background: "linear-gradient(135deg, #e27d01, #ffa500)" }}>
             <Card.Body>
               <h5>Productos Vendidos</h5>
               <h2>{estadisticas.productosVendidos}</h2>
@@ -331,20 +434,12 @@ const Inicio = () => {
         </Col>
       </Row>
 
-      {/* Bloque de Gráficos */}
+      {/* Gráficos */}
       <Row className="g-4">
-        {/* Gráfico de Líneas - Ventas por Hora */}
         <Col lg={8}>
           <Card className="shadow border-0">
-            {/* El ref envuelve EXCLUSIVAMENTE el interior de esta Card para capturar solo el gráfico */}
             <Card.Body ref={graficoHoraRef}>
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="m-0">Ventas por Hora</h5>
-                <Button variant="outline-danger" size="sm" onClick={generarPdfVentasHora}>
-                  <i className="bi bi-file-earmark-pdf me-2"></i>
-                  Descargar PDF
-                </Button>
-              </div>
+              <h5 className="mb-3">Ventas por Hora</h5>
               <ResponsiveContainer width="100%" height={360}>
                 <LineChart data={estadisticas.ventasPorHora}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -358,10 +453,9 @@ const Inicio = () => {
           </Card>
         </Col>
 
-        {/* Gráfico de Pastel - Ventas por Categoría */}
         <Col lg={4}>
           <Card className="shadow border-0">
-            <Card.Body>
+            <Card.Body ref={graficoCategoriaRef}>
               <h5 className="mb-3">Ventas por Categoría</h5>
               <ResponsiveContainer width="100%" height={360}>
                 <PieChart>
@@ -369,9 +463,10 @@ const Inicio = () => {
                     data={estadisticas.ventasPorCategoria.length > 0 ? estadisticas.ventasPorCategoria : [{ name: "Sin datos", value: 1 }]}
                     dataKey="value"
                     nameKey="name"
-                    cx="50%" cy="50%"
-                    innerRadius={60} outerRadius={110}
-                    label
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={110}
                   >
                     {estadisticas.ventasPorCategoria.map((_, i) => (
                       <Cell key={`cell-${i}`} fill={COLORES[i % COLORES.length]} />
@@ -384,7 +479,19 @@ const Inicio = () => {
           </Card>
         </Col>
       </Row>
-    </Container>
+
+      {/* Botones PDF */}
+      <div className="p-3 text-center mt-4 d-flex justify-content-center gap-3 flex-wrap">
+        <Button variant="outline-primary" onClick={generarPdfVentasHora}>
+          <i className="bi bi-file-earmark-pdf me-2"></i>
+          PDF Ventas por Hora
+        </Button>
+        <Button variant="outline-info" onClick={generarPdfVentasCategoria}>
+          <i className="bi bi-file-earmark-pdf me-2"></i>
+          PDF Ventas por Categoría
+        </Button>
+      </div>
+    </div>
   );
 };
 
