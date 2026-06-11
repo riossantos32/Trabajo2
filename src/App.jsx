@@ -21,7 +21,7 @@ const App = () => {
     <Router>
       <Encabezado />
       
-      <main className="margen-superior-main">
+      <main className="margen-superior-main"> 
         <Routes>
           <Route path="/login" element={<Login/>} />
           
