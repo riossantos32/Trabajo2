@@ -50,7 +50,7 @@ const Inicio = () => {
       pdf.setFontSize(10);
       pdf.text(`Periodo: ${fechaDesde} - ${fechaHasta}`, 14, 22);
 
-      // b) Imagen del Gráfico (Captura únicamente el contenedor del LineChart)
+      // b) Imagen del Gráfico (Captura únicamente el contenedor del LineChart
       const canvas = await html2canvas(graficoHoraRef.current);
       const imagen = canvas.toDataURL("image/png");
       pdf.addImage(imagen, "PNG", 10, 30, 180, 80); // Ancho escalado a 180mm para formato A4
