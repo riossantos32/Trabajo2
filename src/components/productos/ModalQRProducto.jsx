@@ -9,7 +9,7 @@ const ModalQRProducto = ({
 }) => {
   if (!producto) return null;
 
-  return (
+  return (  
     <Modal show={mostrar} onHide={onHide} centered size="sm">
       <Modal.Header closeButton>
         <Modal.Title className="fs-5">
