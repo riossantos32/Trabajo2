@@ -1,16 +1,33 @@
-# React + Vite
+# DassyData
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación web de Farmacia Dassy para explorar productos y administrar inventario y analíticas con Supabase.
 
-Currently, two official plugins are available:
+## Inicio local
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1. Instala dependencias con `npm install`.
+2. Crea `.env.local` a partir de `.env.example` y agrega la URL y la clave publicable (anon) de tu proyecto Supabase.
+3. Ejecuta `npm run dev`.
 
-## React Compiler
+No uses la `service_role` key en el navegador. La app muestra el catálogo sin conectar si faltan las variables, pero las consultas y la autenticación requieren credenciales válidas.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Entidades Supabase
 
-## Expanding the ESLint configuration
+La app usa UUID como clave primaria y estos nombres de tabla/columna:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `perfiles`: `id_usuario` (FK a `auth.users.id`), `nombre_completo`, `correo`, `rol` (`propietario` o `cliente`).
+- `proveedores`: `id`, `nombre`, `contacto`, `telefono`, `direccion`.
+- `categorias` y `marcas`: `id`, `nombre`.
+- `productos`: `id`, `codigo_barra`, `nombre_comercial`, `nombre_generico`, `concentracion`, `presentacion`, `descripcion`, `categoria_id`, `marca_id`, `precio_venta_sugerido`, `stock_minimo`, `es_controlado`, `imagen_url`.
+- `inventario`: `id`, `producto_id`, `cantidad_disponible`, `costo_unitario_promedio`, `fecha_vencimiento`, `ubicacion_estante`.
+- `ventas`: `id`, `fecha_venta`, `usuario_id`, `total_venta`, `metodo_pago`, `observaciones`.
+- `detalle_ventas`: `id`, `venta_id`, `producto_id`, `cantidad`, `precio_unitario`, `subtotal`.
+- `compras`: `id`, `proveedor_id`, `fecha_compra`, `total_compra`, `numero_factura_proveedor`, `estado`.
+- `detalle_compras`: `id`, `compra_id`, `producto_id`, `cantidad_comprada`, `costo_unitario`, `fecha_vencimiento_lote`.
+
+Configura RLS para permitir lectura pública/autenticada del catálogo según el flujo deseado, escritura administrativa solo a propietarios y lectura del perfil propio con `id_usuario = auth.uid()`. Asigna el rol `propietario` desde una operación administrativa confiable, nunca desde el formulario de registro. No se guarda `service_role` en el navegador.
+
+## Comandos
+
+- `npm run dev`: servidor de desarrollo.
+- `npm run build`: compilación de producción.
+- `npm run lint`: lint de todo el proyecto existente.

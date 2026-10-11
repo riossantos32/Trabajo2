@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import FormularioLogin from "../components/login/FormularioLogin";
 import { useAuth } from "../context/AuthContext";
+import "./Login.css";
 
 const Login = () => {
   const [usuario, setUsuario] = useState("");
@@ -10,11 +11,11 @@ const Login = () => {
   const [cargando, setCargando] = useState(false);
 
   const navegar = useNavigate();
-  const { login } = useAuth();
+  const { login, usuario: usuarioActual } = useAuth();
 
   const iniciarSesion = async () => {
     if (!usuario || !contrasena) {
-      setError("Por favor ingresa usuario y contraseña");
+      setError("Por favor ingresa correo y contraseña");
       return;
     }
 
@@ -26,36 +27,20 @@ const Login = () => {
       navegar("/");
     } catch (err) {
       console.error(err);
-      setError("Usuario o contraseña incorrectos");
+      setError(err.message || "Usuario o contraseña incorrectos");
     } finally {
       setCargando(false);
     }
   };
 
-  // Redirigir si ya está logueado
   useEffect(() => {
-    const usuarioGuardado = localStorage.getItem("usuario-supabase");
-    if (usuarioGuardado) {
+    if (usuarioActual) {
       navegar("/");
     }
-  }, [navegar]);
-
-  const estiloContenedor = {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100vh",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    background: "linear-gradient(135deg, #FFDEE9, #B5FFFC)",
-    overflow: "hidden",
-    padding: "20px",
-  };
+  }, [usuarioActual, navegar]);
 
   return (
-    <div style={estiloContenedor}>
+    <div className="login-screen">
       <FormularioLogin
         usuario={usuario}
         contrasena={contrasena}

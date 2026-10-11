@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Button, Alert, Spinner } from "react-bootstrap";
+import Icono from "../components/Icono";
 import { supabase } from "../database/supabaseconfig";
 
 import ModalRegistroEmpleado from "../components/empleados/ModalRegistroEmpleado";
@@ -180,12 +181,12 @@ const Empleados = () => {
     <Container className="mt-3">
       <Row className="align-items-center mb-3">
         <Col>
-          <h3><i className="bi-person-badge-fill me-2"></i>Empleados</h3>
+          <h3><Icono nombre="cliente" size={21} className="me-2" />Empleados</h3>
         </Col>
         <Col className="text-end">
           {tienePermiso('crear_empleados') && (
             <Button onClick={() => setMostrarModal(true)}>
-              <i className="bi-plus-lg me-1"></i>Nuevo Empleado
+              <Icono nombre="mas" size={16} className="me-1" />Nuevo Empleado
             </Button>
           )}
         </Col>
@@ -215,7 +216,7 @@ const Empleados = () => {
         <Row className="mb-4">
           <Col>
             <Alert variant="info" className="text-center">
-              <i className="bi bi-info-circle me-2"></i>
+              <Icono nombre="informacion" size={16} className="me-2" />
               No se encontraron empleados que coincidan con "{textoBusqueda}".
             </Alert>
           </Col>

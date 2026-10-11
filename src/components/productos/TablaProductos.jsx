@@ -1,83 +1,54 @@
 import React from 'react';
-import { Table, Button } from 'react-bootstrap';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+import Icono from '../Icono';
 
 const TablaProductos = ({ productos = [], abrirModalEdicion, abrirModalEliminacion, generarQRImagen, copiarProducto }) => {
   return (
-    <Table striped bordered hover responsive size="sm">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nombre</th>
-          <th className="d-none d-md-table-cell">Descripción</th>
-          <th>Precio</th>
-          <th className="d-none d-md-table-cell">Imagen</th>
-          <th className="text-center">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {productos.map((producto) => (
-          <tr key={producto.id_producto}>
-            <td>{producto.id_producto}</td>
-            
-            <td>{producto.nombre_producto || 'Sin nombre'}</td>
-            
-            <td className="d-none d-md-table-cell">
-              {producto.descripcion_producto || 'Sin descripción'}
-            </td>
-            
-            <td>
-              ${parseFloat(producto.precio_venta || 0).toFixed(2)}
-            </td>
-            
-            <td className="d-none d-md-table-cell text-center">
-              {producto.url_imagen ? (
-                <img
-                  src={producto.url_imagen}
-                  alt={producto.nombre_producto}
-                  style={{ 
-                    height: '48px', 
-                    width: 'auto', 
-                    objectFit: 'cover',
-                    borderRadius: '4px'
-                  }}
-                />
-              ) : (
-                <span className="text-muted">Sin imagen</span>
-              )}
-            </td>
-            
-            <td className="text-center">
-             
-              <Button
-                variant="outline-info"
-                size="sm"
-                className="m-1"
-                onClick={() => generarQRImagen(producto)}
-              >
-                <i className="bi bi-qr-code"></i>
-              </Button>
-              <Button
-                variant="outline-warning"
-                size="sm"
-                className="m-1"
-                onClick={() => abrirModalEdicion(producto)}
-              >
-                <i className="bi bi-pencil"></i>
-              </Button>
-              <Button
-                variant="outline-danger"
-                size="sm"
-                className="m-1"
-                onClick={() => abrirModalEliminacion(producto)}
-              >
-                <i className="bi bi-trash"></i>
-              </Button>
-            </td>
+    <div className="inventory-table-wrap products-table-wrap">
+      <table className="inventory-table products-admin-table">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Descripción</th>
+            <th>Precio</th>
+            <th>Imagen</th>
+            <th className="products-actions-heading">Acciones</th>
           </tr>
-        ))}
-      </tbody>
-    </Table>
+        </thead>
+        <tbody>
+          {productos.map((producto) => (
+            <tr key={producto.id_producto}>
+              <td className="products-name-cell">
+                <strong>{producto.nombre_producto || 'Sin nombre'}</strong>
+                <small title={producto.id_producto}>ID · {producto.id_producto}</small>
+              </td>
+              <td className="products-description-cell">{producto.descripcion_producto || 'Sin descripción'}</td>
+              <td className="products-price-cell">C$ {parseFloat(producto.precio_venta || 0).toFixed(2)}</td>
+              <td className="products-image-cell">
+                {producto.url_imagen ? (
+                  <img src={producto.url_imagen} alt={producto.nombre_producto} />
+                ) : (
+                  <span className="products-no-image"><Icono nombre="imagen" size={15} />Sin imagen</span>
+                )}
+              </td>
+              <td>
+                <div className="products-row-actions">
+                  <button type="button" className="products-row-action products-qr-action" onClick={() => generarQRImagen(producto)} aria-label={`Generar QR de ${producto.nombre_producto}`} title="Generar código QR">
+                    <Icono nombre="codigoQr" size={16} />
+                  </button>
+                  <button type="button" className="products-row-action products-edit-action" onClick={() => abrirModalEdicion(producto)} aria-label={`Editar ${producto.nombre_producto}`} title="Editar producto">
+                    <Icono nombre="editar" size={16} />
+                  </button>
+                  <button type="button" className="products-row-action products-delete-action" onClick={() => abrirModalEliminacion(producto)} aria-label={`Eliminar ${producto.nombre_producto}`} title="Eliminar producto">
+                    <Icono nombre="eliminar" size={16} />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+          {!productos.length && <tr><td className="table-empty" colSpan={5}>No hay productos que coincidan con la búsqueda.</td></tr>}
+        </tbody>
+      </table>
+    </div>
   );
 };
 

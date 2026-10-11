@@ -1,9 +1,10 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 const RutaProtegida = ({ children }) => {
   const { usuario, cargando } = useAuth();
+  const location = useLocation();
 
   // Mostrar indicador de carga mientras se verifica la sesión
   if (cargando) {
@@ -20,7 +21,12 @@ const RutaProtegida = ({ children }) => {
   }
 
   // Si no hay usuario autenticado, redirigir al login
-  return usuario ? children : <Navigate to="/login" replace />;
+  if (!usuario) return <Navigate to="/login" replace />;
+  if (usuario.rol === "cliente" && location.pathname !== "/perfiles") {
+    return <Navigate to="/catalogo" replace />;
+  }
+
+  return children;
 };
 
 export default RutaProtegida;

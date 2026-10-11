@@ -1,36 +1,44 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../database/supabaseconfig';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [usuario, setUsuario] = useState(null);
-  const [permisos, setPermisos] = useState({});
   const [cargando, setCargando] = useState(true);
+  const [errorPerfil, setErrorPerfil] = useState('');
 
-  const cargarPermisos = async (rol) => {
-    if (!rol) return;
+  const obtenerPerfil = useCallback(async (authUser) => {
+    if (!authUser) return null;
 
     const { data, error } = await supabase
-      .from('permisos')
-      .select('permisos')
-      .eq('rol', rol)
+      .from('perfiles')
+      .select('*')
+      .eq('id_usuario', authUser.id)
       .maybeSingle();
 
     if (error) {
-      console.error("Error al cargar permisos:", error);
-      return;
+      console.warn(`No se pudo leer perfil en perfiles: ${error.message}`);
+      return null;
     }
+    return data;
+  }, []);
 
-    if (!data) {
-      console.warn(`No se encontraron permisos para el rol: ${rol}. Asegúrate de haber ejecutado el script SQL.`);
-      setPermisos({});
-      return;
-    }
+  const usuarioDesdeAuth = useCallback(async (authUser) => {
+    if (!authUser) return null;
+    const perfil = await obtenerPerfil(authUser);
+    const metadata = authUser.user_metadata || {};
+    const rol = String(perfil?.rol || metadata.rol || 'propietario').trim().toLowerCase();
 
-    console.log("Permisos cargados para rol:", rol, data);
-    setPermisos(data.permisos || {});
-  };
+    const nombre = perfil?.nombre_completo || metadata.nombre || metadata.nombre_completo || authUser.email?.split('@')[0] || 'Usuario';
+
+    return {
+      id: authUser.id,
+      email: authUser.email,
+      nombre,
+      rol,
+    };
+  }, [obtenerPerfil]);
 
   const login = async (email, password) => {
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -40,86 +48,136 @@ export const AuthProvider = ({ children }) => {
 
     if (authError) throw authError;
 
-    // Obtener rol del empleado
-    const { data: empleado, error: empError } = await supabase
-      .from('empleados')
-      .select('tipo_empleado')
-      .eq('email', email)
-      .single();
-
-    if (empError || !empleado) {
-      console.error("Error obteniendo empleado:", empError);
-      throw new Error("No se encontró información del empleado");
+    try {
+      const usuarioActual = await usuarioDesdeAuth(authData.user);
+      localStorage.setItem('usuario-supabase', email);
+      setUsuario(usuarioActual);
+      setErrorPerfil('');
+      return { ...authData, appUser: usuarioActual };
+    } catch (error) {
+      await supabase.auth.signOut();
+      setUsuario(null);
+      setErrorPerfil(error.message);
+      throw error;
     }
+  };
 
-    localStorage.setItem("usuario-supabase", email);
-    
-    setUsuario({
-      email: email,
-      rol: empleado.tipo_empleado
+  const registrar = async ({ nombre, email, password }) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { nombre, rol: 'cliente' } },
     });
 
-    await cargarPermisos(empleado.tipo_empleado);
-    return authData;
+    if (error) throw error;
+
+    if (data.session && data.user) {
+      const perfil = {
+        id_usuario: data.user.id,
+        correo: email,
+        nombre_completo: nombre,
+        rol: 'cliente',
+      };
+      await supabase
+        .from('perfiles')
+        .upsert(perfil, { onConflict: 'id_usuario' });
+
+      const usuarioActual = { id: data.user.id, email, nombre, rol: 'cliente' };
+      localStorage.setItem('usuario-supabase', email);
+      setUsuario(usuarioActual);
+    }
+
+    return data;
   };
 
   const logout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem("usuario-supabase");
+    localStorage.removeItem('usuario-supabase');
     setUsuario(null);
-    setPermisos({});
   };
 
-  // Cargar sesión al iniciar
+  const tienePermiso = (nombrePermiso) => {
+    if (!usuario) return false;
+    // El propietario o admin tiene acceso total a todos los módulos
+    if (usuario.rol === 'propietario' || usuario.rol === 'admin' || usuario.rol === 'gerente') {
+      return true;
+    }
+    // Clientes solo tienen permisos para ver catálogo e inicio
+    if (usuario.rol === 'cliente') {
+      return ['ver_inicio', 'ver_catalogo'].includes(nombrePermiso);
+    }
+    return true;
+  };
+
   useEffect(() => {
-    const cargarSesionInicial = async () => {
-      const usuarioGuardado = localStorage.getItem("usuario-supabase");
-      
-      if (usuarioGuardado) {
-        try {
-          const { data: empleado, error } = await supabase
-            .from('empleados')
-            .select('tipo_empleado')
-            .eq('email', usuarioGuardado)
-            .maybeSingle();
-
-          if (empleado && !error) {
-            setUsuario({
-              email: usuarioGuardado,
-              rol: empleado.tipo_empleado
-            });
-            await cargarPermisos(empleado.tipo_empleado);
-          } else {
-            // Si no se puede obtener el empleado, limpiar sesión
-            localStorage.removeItem("usuario-supabase");
+    let vigente = true;
+    supabase.auth.getSession().then(async ({ data, error }) => {
+      if (error) console.error('Error al recuperar sesión:', error);
+      try {
+        if (data?.session?.user) {
+          const actual = await usuarioDesdeAuth(data.session.user);
+          if (vigente) {
+            setUsuario(actual);
+            setErrorPerfil('');
           }
-        } catch (err) {
-          console.error("Error al recuperar sesión:", err);
-          localStorage.removeItem("usuario-supabase");
         }
+      } catch (fallo) {
+        if (vigente) {
+          setUsuario(null);
+          setErrorPerfil(fallo.message);
+        }
+      } finally {
+        if (vigente) setCargando(false);
       }
-      setCargando(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_evento, session) => {
+      if (!session) {
+        setUsuario(null);
+        setErrorPerfil('');
+        setCargando(false);
+        return;
+      }
+      Promise.resolve().then(async () => {
+        try {
+          const actual = await usuarioDesdeAuth(session.user);
+          if (vigente) {
+            setUsuario(actual);
+            setErrorPerfil('');
+          }
+        } catch (fallo) {
+          if (vigente) {
+            setUsuario(null);
+            setErrorPerfil(fallo.message);
+          }
+        }
+      });
+    });
+
+    return () => {
+      vigente = false;
+      listener.subscription.unsubscribe();
     };
-
-    cargarSesionInicial();
-  }, []);
-
-  const tienePermiso = (permiso) => !!permisos[permiso];
+  }, [usuarioDesdeAuth]);
 
   return (
-    <AuthContext.Provider value={{
-      usuario,
-      permisos,
-      tienePermiso,
-      login,
-      logout,
-      cargando
-    }}>
+    <AuthContext.Provider
+      value={{
+        usuario,
+        errorPerfil,
+        login,
+        registrar,
+        logout,
+        tienePermiso,
+        cargando,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -127,3 +185,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+export default AuthContext;

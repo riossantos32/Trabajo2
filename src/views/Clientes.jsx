@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button, Spinner, Alert } from "react-bootstrap";
+import Icono from "../components/Icono";
 import { supabase } from "../database/supabaseconfig";
 import NotificacionOperacion from '../components/NotificacionOperacion';
 import ModalRegistroCliente from '../components/clientes/ModalRegistroCliente';
@@ -167,12 +168,12 @@ const Clientes = () => {
         <Container className="mt-4">
             <Row className="mb-4 align-items-center">
                 <Col>
-                    <h2 className="text-primary"><i className="bi bi-person-badge-fill me-2"></i>Gestión de Clientes</h2>
+                    <h2 className="text-primary"><Icono nombre="cliente" size={21} className="me-2" />Gestión de Clientes</h2>
                 </Col>
                 <Col className="text-end">
                     {tienePermiso('crear_clientes') && (
                         <Button variant="primary" onClick={() => setMostrarModalRegistro(true)}>
-                            <i className="bi bi-plus-lg me-2"></i>Nuevo Cliente
+                            <Icono nombre="mas" size={16} className="me-2" />Nuevo Cliente
                         </Button>
                     )}
                 </Col>

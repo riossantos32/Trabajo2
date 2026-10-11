@@ -34,7 +34,7 @@ function TarjetaCatalogo({ producto }) {
           <Card.Subtitle className="mb-2 text-muted">{nombreCategoria}</Card.Subtitle>
           <Card.Text className="flex-grow-1">{descripcionCorta}</Card.Text>
           <div className="d-flex justify-content-between align-items-center mt-3">
-            <strong>${producto.precio_venta?.toFixed(2) || '0.00'}</strong>
+            <strong className="text-primary fs-5">C${Number(producto.precio_venta || 0).toFixed(2)}</strong>
             <Button variant="primary" size="sm" onClick={() => setMostrarModal(true)}>
               Ver detalles
             </Button>

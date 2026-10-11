@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button, Spinner } from "react-bootstrap";
+import Icono from "../components/Icono";
 import { supabase } from "../database/supabaseconfig";
 import NotificacionOperacion from "../components/NotificacionOperacion";
 import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
@@ -38,14 +39,42 @@ const Ventas = () => {
   // Cargar datos
   const cargarDatosAuxiliares = async () => {
     try {
-      const [c, e, p] = await Promise.all([
+      const [c, e, p, perf] = await Promise.all([
         supabase.from("clientes").select("*"),
         supabase.from("empleados").select("*"),
-        supabase.from("productos").select("*")
+        supabase.from("productos").select("*"),
+        supabase.from("perfiles").select("*")
       ]);
-      setClientes(c.data || []);
-      setEmpleados(e.data || []);
-      setProductos(p.data || []);
+
+      const prods = (p.data || []).map((item) => ({
+        ...item,
+        id_producto: item.id_producto || item.id,
+        nombre_producto: item.nombre_producto || item.nombre_comercial || "Sin nombre",
+        precio_venta: item.precio_venta != null ? Number(item.precio_venta) : Number(item.precio_venta_sugerido || 0)
+      }));
+      setProductos(prods);
+
+      if (c.data && c.data.length > 0) {
+        setClientes(c.data);
+      } else {
+        const clientesPerfiles = (perf.data || []).map((usr) => ({
+          id_cliente: usr.id_usuario,
+          nombre_cliente: usr.nombre_completo || usr.correo,
+          apellido_cliente: ""
+        }));
+        setClientes(clientesPerfiles);
+      }
+
+      if (e.data && e.data.length > 0) {
+        setEmpleados(e.data);
+      } else {
+        const empleadosPerfiles = (perf.data || []).map((usr) => ({
+          id_empleado: usr.id_usuario,
+          nombre_empleado: usr.nombre_completo || usr.correo,
+          apellido_empleado: ""
+        }));
+        setEmpleados(empleadosPerfiles);
+      }
     } catch (err) {
       console.error("Error cargando auxiliares:", err);
     }
@@ -54,7 +83,7 @@ const Ventas = () => {
   const cargarVentas = async () => {
     try {
       setCargando(true);
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("ventas")
         .select(`
           *,
@@ -65,14 +94,53 @@ const Ventas = () => {
         .order("fecha_venta", { ascending: false });
 
       if (error) {
-        console.error("Error al cargar ventas:", error);
-        setToast({ mostrar: true, mensaje: "Error al cargar ventas", tipo: "error" });
-        return;
+        const [vResp, detResp, prodResp, perfResp] = await Promise.all([
+          supabase.from("ventas").select("*").order("fecha_venta", { ascending: false }),
+          supabase.from("detalle_ventas").select("*"),
+          supabase.from("productos").select("*"),
+          supabase.from("perfiles").select("*")
+        ]);
+
+        if (vResp.error) throw vResp.error;
+
+        const mapaProds = new Map(
+          (prodResp.data || []).map((pr) => [pr.id || pr.id_producto, pr.nombre_comercial || pr.nombre_producto])
+        );
+        const mapaPerfs = new Map(
+          (perfResp.data || []).map((pe) => [pe.id_usuario, pe.nombre_completo || pe.correo])
+        );
+
+        data = (vResp.data || []).map((v) => {
+          const vId = v.id || v.id_venta;
+          const clienteNom = mapaPerfs.get(v.usuario_id) || "Cliente";
+          const detallesVenta = (detResp.data || [])
+            .filter((d) => (d.venta_id || d.id_venta) === vId)
+            .map((d) => ({
+              ...d,
+              id_producto: d.producto_id || d.id_producto,
+              precio_unitario: d.precio_unitario,
+              cantidad: d.cantidad,
+              productos: {
+                nombre_producto: mapaProds.get(d.producto_id || d.id_producto) || "Producto"
+              }
+            }));
+
+          return {
+            ...v,
+            id_venta: vId,
+            total: v.total != null ? v.total : v.total_venta,
+            clientes: { nombre_cliente: clienteNom, apellido_cliente: "" },
+            empleados: { nombre_empleado: "Caja Principal", apellido_empleado: "" },
+            detalles_ventas: detallesVenta
+          };
+        });
       }
+
       setVentas(data || []);
+      setVentasFiltradas(data || []);
     } catch (err) {
       console.error(err);
-      setToast({ mostrar: true, mensaje: "Error inesperado al cargar ventas", tipo: "error" });
+      setToast({ mostrar: true, mensaje: `Error al cargar ventas: ${err.message}`, tipo: "error" });
     } finally {
       setCargando(false);
     }
@@ -183,51 +251,106 @@ const Ventas = () => {
     try {
       if (ventaAEditar) {
         // === ACTUALIZAR ===
-        await supabase.from("ventas").update({
-          id_cliente: clienteSeleccionado.id_cliente,
-          id_empleado: empleadoSeleccionado.id_empleado,
+        const vId = ventaAEditar.id || ventaAEditar.id_venta;
+
+        let { error } = await supabase.from("ventas").update({
+          usuario_id: clienteSeleccionado.id_cliente,
           metodo_pago: metodoPago,
-          total: totalGeneral
-        }).eq("id_venta", ventaAEditar.id_venta);
+          total_venta: totalGeneral
+        }).eq("id", vId);
 
-        await supabase.from("detalles_ventas").delete().eq("id_venta", ventaAEditar.id_venta);
+        if (error) {
+          await supabase.from("ventas").update({
+            id_cliente: clienteSeleccionado.id_cliente,
+            id_empleado: empleadoSeleccionado.id_empleado,
+            metodo_pago: metodoPago,
+            total: totalGeneral
+          }).eq("id_venta", vId);
+        }
 
-        const detallesInsert = detalles.map(d => ({
-          id_venta: ventaAEditar.id_venta,
-          id_producto: d.id_producto,
+        // Eliminar detalles previos
+        await supabase.from("detalle_ventas").delete().eq("venta_id", vId);
+        await supabase.from("detalles_ventas").delete().eq("id_venta", vId);
+
+        const detallesDassy = detalles.map(d => ({
+          venta_id: vId,
+          producto_id: d.id_producto,
           cantidad: d.cantidad,
           precio_unitario: d.precio,
           subtotal: d.cantidad * d.precio
         }));
 
-        await supabase.from("detalles_ventas").insert(detallesInsert);
+        let { error: errDet } = await supabase.from("detalle_ventas").insert(detallesDassy);
+        if (errDet) {
+          const detallesTrad = detalles.map(d => ({
+            id_venta: vId,
+            id_producto: d.id_producto,
+            cantidad: d.cantidad,
+            precio_unitario: d.precio,
+            subtotal: d.cantidad * d.precio
+          }));
+          await supabase.from("detalles_ventas").insert(detallesTrad);
+        }
 
         setToast({ mostrar: true, mensaje: "Venta actualizada exitosamente", tipo: "exito" });
       } else {
         // === NUEVA VENTA ===
         const nicaNow = () => new Date().toLocaleString("sv", { timeZone: "America/Managua" }).replace(" ", "T");
 
-        const { data: ventaData } = await supabase
+        let ventaId = null;
+
+        // Intentar Dassydata schema
+        const { data: vDataDassy, error: vErrDassy } = await supabase
           .from("ventas")
           .insert([{
-            id_cliente: clienteSeleccionado.id_cliente,
-            id_empleado: empleadoSeleccionado.id_empleado,
-            fecha_venta: nicaNow(),
+            usuario_id: clienteSeleccionado.id_cliente,
+            fecha_venta: new Date().toISOString(),
             metodo_pago: metodoPago,
-            total: totalGeneral
+            total_venta: totalGeneral,
+            observaciones: "Venta registrada desde punto de venta"
           }])
           .select()
           .single();
 
-        const detallesInsert = detalles.map(d => ({
-          id_venta: ventaData.id_venta,
-          id_producto: d.id_producto,
-          cantidad: d.cantidad,
-          precio_unitario: d.precio,
-          subtotal: d.cantidad * d.precio
-        }));
+        if (!vErrDassy && vDataDassy) {
+          ventaId = vDataDassy.id;
+        } else {
+          // Intentar esquema tradicional
+          const { data: vDataTrad } = await supabase
+            .from("ventas")
+            .insert([{
+              id_cliente: clienteSeleccionado.id_cliente,
+              id_empleado: empleadoSeleccionado.id_empleado,
+              fecha_venta: nicaNow(),
+              metodo_pago: metodoPago,
+              total: totalGeneral
+            }])
+            .select()
+            .single();
+          ventaId = vDataTrad?.id_venta || vDataTrad?.id;
+        }
 
-        await supabase.from("detalles_ventas").insert(detallesInsert);
+        if (ventaId) {
+          const detallesDassy = detalles.map(d => ({
+            venta_id: ventaId,
+            producto_id: d.id_producto,
+            cantidad: d.cantidad,
+            precio_unitario: d.precio,
+            subtotal: d.cantidad * d.precio
+          }));
+
+          let { error: errDet } = await supabase.from("detalle_ventas").insert(detallesDassy);
+          if (errDet) {
+            const detallesTrad = detalles.map(d => ({
+              id_venta: ventaId,
+              id_producto: d.id_producto,
+              cantidad: d.cantidad,
+              precio_unitario: d.precio,
+              subtotal: d.cantidad * d.precio
+            }));
+            await supabase.from("detalles_ventas").insert(detallesTrad);
+          }
+        }
 
         setToast({ mostrar: true, mensaje: "Venta registrada exitosamente", tipo: "exito" });
       }
@@ -249,12 +372,12 @@ const Ventas = () => {
       <Row className="align-items-center mb-3">
         <Col xs={8} lg={8}>
           <h3 className="mb-0">
-            <i className="bi bi-receipt-cutoff me-2"></i> Ventas
+            <Icono nombre="venta" size={21} className="me-2" /> Ventas
           </h3>
         </Col>
         <Col xs={4} lg={4} className="text-end">
           <Button onClick={abrirNuevaVenta} size="md">
-            <i className="bi bi-plus-lg"></i>
+            <Icono nombre="mas" size={16} />
             <span className="d-none d-sm-inline ms-2">Nueva Venta</span>
           </Button>
         </Col>

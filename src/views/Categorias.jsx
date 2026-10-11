@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button, Spinner, Alert } from "react-bootstrap";
+import Icono from "../components/Icono";
 import TablaCategorias from "../components/categorias/TablaCategorias";
 import { supabase } from "../database/supabaseconfig";
 import NotificacionOperacion from '../components/NotificacionOperacion';
@@ -62,36 +63,45 @@ const [categoriaQR, setCategoriaQR] = useState(null);
         setCategoriaEditar(prev => ({ ...prev, [name]: value }));
     };
 
-    // --- FUNCIÓN ACTUALIZAR (Corregida) ---
+    // --- FUNCIÓN ACTUALIZAR (Compatible con ambos esquemas) ---
    const actualizarCategoria = async () => {
   try {
-    if (
-      !categoriaEditar.nombre_categoria.trim() ||
-      !categoriaEditar.descripcion_categoria.trim()
-    ) {
+    const nombre = categoriaEditar.nombre_categoria?.trim() || categoriaEditar.nombre?.trim();
+    if (!nombre) {
       setToast({
         mostrar: true,
-        mensaje: "Debe llenar todos los campos.",
+        mensaje: "Debe ingresar el nombre de la categoría.",
         tipo: "advertencia",
       });
       return;
     }
 
     setMostrarModalEdicion(false);
+    const id = categoriaEditar.id_categoria || categoriaEditar.id;
 
-    const { error } = await supabase
+    // Intentar actualizar esquema Dassydata (id, nombre)
+    let { error } = await supabase
       .from("categorias")
-      .update({
-        nombre_categoria: categoriaEditar.nombre_categoria,
-        descripcion_categoria: categoriaEditar.descripcion_categoria,
-      })
-      .eq("id_categoria", categoriaEditar.id_categoria);
+      .update({ nombre })
+      .eq("id", id);
+
+    // Si falla, intentar esquema tradicional (id_categoria, nombre_categoria)
+    if (error) {
+      const resp = await supabase
+        .from("categorias")
+        .update({
+          nombre_categoria: nombre,
+          descripcion_categoria: categoriaEditar.descripcion_categoria || "",
+        })
+        .eq("id_categoria", id);
+      error = resp.error;
+    }
 
     if (error) {
       console.error("Error al actualizar categoría:", error.message);
       setToast({
         mostrar: true,
-        mensaje: `Error al actualizar la categoría ${categoriaEditar.nombre_categoria}.`,
+        mensaje: `Error al actualizar la categoría ${nombre}.`,
         tipo: "error",
       });
       return;
@@ -101,7 +111,7 @@ const [categoriaQR, setCategoriaQR] = useState(null);
 
     setToast({
       mostrar: true,
-      mensaje: `Categoría ${categoriaEditar.nombre_categoria} actualizada exitosamente.`,
+      mensaje: `Categoría ${nombre} actualizada exitosamente.`,
       tipo: "exito",
     });
 
@@ -120,15 +130,23 @@ const categoriasPaginadas = categoriasFiltradas.slice(
   paginaActual * registrosPorPagina
 );
 
-
 const eliminarCategoria = async () => {
     if (!categoriaAEliminar) return;
     try {
         setMostrarModalEliminacion(false);
-        const { error } = await supabase
+        const id = categoriaAEliminar.id_categoria || categoriaAEliminar.id;
+        let { error } = await supabase
             .from("categorias")
             .delete()
-            .eq("id_categoria", categoriaAEliminar.id_categoria);
+            .eq("id", id);
+
+        if (error) {
+            const resp = await supabase
+                .from("categorias")
+                .delete()
+                .eq("id_categoria", id);
+            error = resp.error;
+        }
 
         if (error) {
             console.error("Error al eliminar categoría:", error.message);
@@ -136,14 +154,14 @@ const eliminarCategoria = async () => {
                  mostrar: true, 
                  mensaje: "Error al eliminar la categoría.", 
                  tipo: "error" 
-        });
+            });
             return; 
         }
 
         await cargarCategorias();
 
         setToast({ mostrar: true, 
-            mensaje: `Categoría ${categoriaAEliminar.nombre_categoria} eliminada exitosamente.`, 
+            mensaje: `Categoría eliminada exitosamente.`, 
             tipo: "exito" 
         });
     } catch (err) {
@@ -155,70 +173,71 @@ const eliminarCategoria = async () => {
    
     const agregarCategoria = async () => {
         try {
-            if (!nuevaCategoria.nombre_categoria.trim() || !nuevaCategoria.descripcion_categoria.trim()) {
-                setToast({ mostrar: true, mensaje: "Debe llenar todos los campos.", tipo: "advertencia" });
+            const nombre = nuevaCategoria.nombre_categoria?.trim() || nuevaCategoria.nombre?.trim();
+            if (!nombre) {
+                setToast({ mostrar: true, mensaje: "Debe ingresar el nombre de la categoría.", tipo: "advertencia" });
                 return;
             }
 
-            const { error } = await supabase.from("categorias").insert([
-                {
-                    nombre_categoria: nuevaCategoria.nombre_categoria,
-                    descripcion_categoria: nuevaCategoria.descripcion_categoria,
-                },
-            ]);
+            let { error } = await supabase.from("categorias").insert([{ nombre }]);
+            if (error) {
+                const resp = await supabase.from("categorias").insert([
+                    {
+                        nombre_categoria: nombre,
+                        descripcion_categoria: nuevaCategoria.descripcion_categoria || "",
+                    },
+                ]);
+                error = resp.error;
+            }
 
             if (error) throw error;
 
             setToast({ mostrar: true, mensaje: `Categoría registrada exitosamente.`, tipo: "exito" });
             setNuevaCategoria({ nombre_categoria: "", descripcion_categoria: "" });
             setMostrarModal(false);
-            cargarCategorias(); // Recargar lista
+            cargarCategorias();
         } catch (err) {
-            setToast({ mostrar: true, mensaje: "Error al registrar.", tipo: "error" });
+            setToast({ mostrar: true, mensaje: `Error al registrar: ${err.message}`, tipo: "error" });
         }
     };
 
     const generarPDFCategoria = (categoria) => {
-
   const doc = new jsPDF();
-
-  // Título
   doc.setFontSize(18);
-  doc.text("Reporte de Categoría", 14, 20);
-
-  // Línea decorativa
+  doc.text("Reporte de Categoría - Farmacia Dassy", 14, 20);
   doc.line(14, 25, 195, 25);
-
-  // Información de la categoría
   doc.setFontSize(12);
 
   autoTable(doc, {
     startY: 35,
     head: [["Campo", "Valor"]],
     body: [
-      ["ID", categoria.id_categoria],
-      ["Nombre", categoria.nombre_categoria],
-      ["Descripción", categoria.descripcion_categoria],
+      ["ID", categoria.id_categoria || categoria.id],
+      ["Nombre", categoria.nombre_categoria || categoria.nombre],
+      ["Descripción", categoria.descripcion_categoria || "Sin descripción"],
     ],
   });
 
-  // Descargar PDF
-  doc.save(`categoria_${categoria.id_categoria}.pdf`);
+  doc.save(`categoria_${categoria.id_categoria || categoria.id}.pdf`);
 };
-
 
     const cargarCategorias = async () => {
         try {
             setCargando(true);
             const { data, error } = await supabase
                 .from("categorias")
-                .select("*")
-                .order("id_categoria", { ascending: true });
+                .select("*");
 
             if (error) throw error;
-            setCategorias(data || []);
+            const mapeadas = (data || []).map((c) => ({
+                ...c,
+                id_categoria: c.id_categoria || c.id,
+                nombre_categoria: c.nombre_categoria || c.nombre || "",
+                descripcion_categoria: c.descripcion_categoria || c.descripcion || "Categoría Farmacia Dassy",
+            }));
+            setCategorias(mapeadas);
         } catch (err) {
-            console.error("Error:", err.message);
+            console.error("Error al cargar categorías:", err.message);
         } finally {
             setCargando(false);
         }
@@ -373,12 +392,12 @@ return (
 <Row className="align-items-center mb-3">
   <Col xs={8} sm={8} md={8} lg={8} className="d-flex align-items-center">
     <h3 className="mb-0">
-      <i className="bi-bookmark-plus-fill me-2"></i> Categorías
+      <Icono nombre="etiqueta" size={21} className="me-2" /> Categorías
     </h3>
   </Col>
   <Col xs={2} sm={2} md={2} lg={2} className="text-end">
     <Button variant="primary" onClick={abrirModalCorreo} size="md">
-      <i className="bi bi-envelope"></i>
+      <Icono nombre="correo" size={16} />
       <span className="d-none d-lg-inline ms-2">Enviar por Correo</span>
     </Button>
   </Col>
@@ -387,7 +406,7 @@ return (
       onClick={() => setMostrarModal(true)}
       size="md"
     >
-      <i className="bi-plus-lg"></i>
+      <Icono nombre="mas" size={16} />
       <span className="d-none d-lg-inline ms-2">Nueva Categoría</span>
     </Button>
   </Col>

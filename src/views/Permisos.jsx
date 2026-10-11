@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Button, Spinner, Alert } from "react-bootstrap";
+import Icono from "../components/Icono";
 import { supabase } from "../database/supabaseconfig";
 import NotificacionOperacion from "../components/NotificacionOperacion";
 import CuadroBusquedas from "../components/busquedas/CuadroBusquedas";
@@ -86,7 +87,7 @@ const Permisos = () => {
     <Container className="mt-3">
       <Row className="align-items-center mb-3">
         <Col>
-          <h3><i className="bi bi-shield-lock-fill me-2"></i>Gestión de Permisos</h3>
+          <h3><Icono nombre="permiso" size={21} className="me-2" />Gestión de Permisos</h3>
         </Col>
       </Row>
 
